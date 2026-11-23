@@ -1,16 +1,18 @@
-const query=document.getElementById('atlasQuery'),results=document.getElementById('suggestions'),dirDialog=document.getElementById('directoryDialog');
-function goBuilding(code){
- const center=atlasCenters[code];if(!center)return;
- dirDialog.close();results.hidden=true;query.value='';
- el('area').value='campus';el('area').onchange();mode='ground';z=3;x=196+.585*(center[0]+.5);y=.585*(center[1]+.5);render();
- const p=new DOMPoint(center[0]+.5,center[1]+.5).matrixTransform(el('campusBase').getScreenCTM());showBuilding({clientX:p.x,clientY:p.y});
+const query=el('atlasQuery'),listing=el('allBuildings');
+function selectEntry(code){
+ const [cx,cy]=atlasCenters[code];el('area').value='campus';mode='ground';
+ z=3;x=196+.585*(cx+.5);y=.585*(cy+.5);render();
+ const p=new DOMPoint(cx+.5,cy+.5).matrixTransform(el('campusBase').getScreenCTM());
+ showBuilding({clientX:p.x,clientY:p.y});
 }
-function addRows(box,rows){
- box.replaceChildren();for(const b of rows){const btn=document.createElement('button');btn.textContent=b.code+'　'+b.name;btn.onclick=()=>goBuilding(b.code);box.append(btn);}
+function listBuildings(){
+ const term=query.value.trim().toUpperCase();listing.replaceChildren();const groups=new Map();
+ for(const b of atlasCatalog){
+  if(!(b.code+' '+b.name).toUpperCase().includes(term))continue;
+  const key=b.code[0];if(!groups.has(key)){const group=document.createElement('details'),title=document.createElement('summary');title.textContent=key+' 区';group.open=!!term;group.append(title);groups.set(key,group);listing.append(group)}
+  const button=document.createElement('button');button.textContent=b.code+'　'+b.name;button.onclick=()=>selectEntry(b.code);groups.get(key).append(button);
+ }
+ if(!groups.size)listing.textContent='没有匹配的建筑';
 }
-query.oninput=()=>{const term=query.value.trim().toUpperCase();results.hidden=!term;if(!term)return;
- const matches=atlasCatalog.filter(b=>(b.code+' '+b.name).toUpperCase().includes(term));addRows(results,matches);if(!matches.length)results.textContent='没有匹配的建筑';};
-query.onkeydown=e=>{if(e.key==='Enter'&&!results.hidden)results.querySelector('button')?.click();if(e.key==='Escape')results.hidden=true;if(e.key==='ArrowDown'){e.preventDefault();results.querySelector('button')?.focus()}};
-document.addEventListener('pointerdown',e=>{if(!e.target.closest('.atlassearch'))results.hidden=true});
-document.getElementById('atlasDirectory').onclick=()=>{addRows(document.getElementById('allBuildings'),atlasCatalog);dirDialog.showModal()};
-document.getElementById('closeDir').onclick=()=>dirDialog.close();
+query.oninput=listBuildings;query.onkeydown=e=>{if(e.key==='Enter'&&query.value.trim())listing.querySelector('button')?.click()};
+el('place').onclick=()=>drawer(true);listBuildings();
