@@ -5,49 +5,90 @@ const gates={'4号门':[126,594],'北校门':[601,148],'6号门':[1114,637],'南
 const walkLocations={...gates,...atlasCenters};
 const walkPanel=document.createElement('section');walkPanel.id='walkPanel';walkPanel.hidden=true;el('detailsMount').after(walkPanel);
 const routeLayer=document.createElementNS(map.namespaceURI,'g');routeLayer.style.pointerEvents='none';el('campusPlan').append(routeLayer);
-function clearWalk(){routeLayer.replaceChildren();walkPanel.hidden=true;el('drawer').classList.remove('routing')}
+function clearWalk(){pendingSide=null;pickBar.hidden=true;routeLayer.replaceChildren();walkPanel.hidden=true;el('drawer').classList.remove('routing')}
 window.clearWalk=clearWalk;
 function nearestRoad(point,accept){
  let best=-1,min=Infinity;
  for(let i=0;i<walkCount;i++){if(!road(i)||!accept(i))continue;const [x,y]=walkXY(i),d=(x-point[0])**2+(y-point[1])**2;if(d<min){best=i;min=d}}
  return min<=85**2?best:-1;
 }
-function findWalk(start,code){
- const first=nearestRoad(start,()=>true);if(first<0)return [];
- const prev=new Int32Array(walkCount).fill(-1),queue=new Int32Array(walkCount);let head=0,tail=1;queue[0]=first;prev[first]=first;
- const contacts=new Map((walkEdges[code]||[]).map(([cell,x,y])=>[cell,[x,y]]));
- let last=-1;
- while(head<tail){const i=queue[head++];if(contacts.has(i)){last=i;break}for(const j of [i-1,i+1,i-walkWidth,i+walkWidth]){
- if(road(j)&&prev[j]===-1&&Math.abs(j%walkWidth-i%walkWidth)<=1){prev[j]=i;queue[tail++]=j}
- }}
- if(last<0)return [];
- const path=[];for(let i=last;;i=prev[i]){path.push(walkXY(i));if(i===first)break}
- return path.reverse().concat([contacts.get(last)]);
+function contactsFor(value){
+ if(!value)return new Map();
+ if(typeof value==='string'&&!gates[value])return new Map((walkEdges[value]||[]).map(([i,x,y])=>[i,[x,y]]));
+ const i=typeof value==='number'?value:nearestRoad(gates[value],()=>true);
+ return i<0?new Map():new Map([[i,walkXY(i)]]);
+}
+function findWalk(start,end){
+ const starts=contactsFor(start),ends=contactsFor(end);
+ if(!starts.size||!ends.size)return [];
+ const prev=new Int32Array(walkCount).fill(-1),queue=new Int32Array(walkCount);let head=0,tail=0;
+ for(const i of starts.keys()){queue[tail++]=i;prev[i]=i}
+ while(head<tail){
+  const i=queue[head++];
+  if(ends.has(i)){
+   const path=[ends.get(i)];let j=i;
+   while(prev[j]!==j){path.push(walkXY(j));j=prev[j]}
+   path.push(walkXY(j),starts.get(j));return path.reverse();
+  }
+  for(const j of [i-1,i+1,i-walkWidth,i+walkWidth])if(road(j)&&prev[j]===-1&&Math.abs(j%walkWidth-i%walkWidth)<=1){prev[j]=i;queue[tail++]=j}
+ }
+ return [];
 }
 function svgElement(tag,attrs){const n=document.createElementNS(map.namespaceURI,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);return n}
-function directions(code){
- clearWalk();el('drawer').classList.add('routing');buildingCard.hidden=true;walkPanel.hidden=false;
- const back=document.createElement('button');back.textContent='‹ 返回地点详情';back.onclick=()=>selectEntry(code);
- const title=document.createElement('h2');title.textContent='地上步行';
- const label=document.createElement('label');label.textContent='起点';const select=document.createElement('select');
- for(const k of Object.keys(walkLocations)){if(k===code)continue;const option=new Option(atlasCatalog.some(b=>b.code===k)?k+' '+atlasCatalog.find(b=>b.code===k).name:k,k);select.add(option)}
- label.append(select);const dest=document.createElement('p');dest.textContent='终点　'+code+' '+atlasCatalog.find(b=>b.code===code).name;
- const note=document.createElement('small');walkPanel.replaceChildren(back,title,label,dest,note);
- function draw(){
- routeLayer.replaceChildren();const path=findWalk(walkLocations[select.value],code);
- if(path.length<2){note.textContent='当前底图无法分辨这两处之间的连续步道。';return}
- note.textContent='按底图步道估算，路线接触目标楼体即结束。入口及临时封闭情况以现场为准。';
+const endpoints={start:null,end:null};
+let pendingSide=null;
+const pickBar=document.createElement('div');pickBar.id='pickBar';pickBar.hidden=true;
+const hint=document.createElement('span'),cancelPick=document.createElement('button');cancelPick.textContent='取消';
+pickBar.append(hint,cancelPick);document.querySelector('.stage').append(pickBar);
+const sideNames={start:'起点',end:'终点'};
+function pickSide(side){
+ pendingSide=side;hint.textContent='点选'+sideNames[side]+'：建筑、校门或步道';pickBar.hidden=false;drawer(false);
+}
+function finishPicking(){pendingSide=null;pickBar.hidden=true;drawer(true);showPlanner()}
+cancelPick.onclick=finishPicking;
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&pendingSide)finishPicking()});
+function endpointName(value){
+ if(value==null)return '在地图上选择';
+ if(typeof value==='number')return '地图选点';
+ const b=atlasCatalog.find(b=>b.code===value);return b?b.code+' '+b.name:value;
+}
+window.pickWalkEndpoint=e=>{
+ if(!pendingSide||mode!=='ground')return false;
+ const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(el('campusBase').getScreenCTM().inverse()),px=Math.floor(p.x),py=Math.floor(p.y);
+ const other=pendingSide==='start'?'end':'start';
+ let value;
+ if(px>=0&&py>=0&&px<1244&&py<1265){
+ const id=buildingPixels?.[4*(py*1244+px)];
+ if(id)value=buildingData.items[id-1][0];
+ else {
+ const gate=Object.keys(gates).find(k=>Math.hypot(gates[k][0]-px,gates[k][1]-py)<8);
+ const cell=py*walkWidth+px;if(gate)value=gate;else if(road(cell))value=cell;
+ }}
+ if(value==null||value===endpoints[other]){hint.textContent=value==null?'请点建筑、校门或米白色步道':'起点和终点相同，请重新选择';return true}
+ endpoints[pendingSide]=value;if(endpoints[other]==null){pickSide(other);return true}finishPicking();return true;
+};
+function directions(code,side){
+ clearWalk();highlight.remove();el('drawer').classList.add('routing');buildingCard.hidden=true;walkPanel.hidden=false;
+ endpoints.start=null;endpoints.end=null;endpoints[side]=code;showPlanner();pickSide(side==='start'?'end':'start');
+}
+function showPlanner(){
+ walkPanel.replaceChildren();routeLayer.replaceChildren();
+ const title=document.createElement('h2');title.textContent='地上步行';walkPanel.append(title);
+ for(const key of ['start','end']){
+  const b=document.createElement('button');b.className='endpoint';b.textContent=sideNames[key]+'　'+endpointName(endpoints[key])+'　›';b.onclick=()=>pickSide(key);walkPanel.append(b);
+ }
+ const swap=document.createElement('button');swap.textContent='⇅ 交换起终点';swap.onclick=()=>{[endpoints.start,endpoints.end]=[endpoints.end,endpoints.start];showPlanner()};
+ const exit=document.createElement('button');exit.textContent='结束规划';exit.onclick=clearWalk;walkPanel.append(swap,exit);
+ if(endpoints.start==null||endpoints.end==null)return;
+ const path=findWalk(endpoints.start,endpoints.end),note=document.createElement('p');walkPanel.append(note);
+ if(!path.length){note.textContent='底图中未找到连续接边的步道，可改选建筑旁的道路。';return}
+ note.textContent='按地上底图估算，实际出入口及通行情况以现场为准。';
  const points=path.map(p=>p.join(',')).join(' ');
  for(const [stroke,width] of [['white',6],['#08746a',3.5]])routeLayer.append(svgElement('polyline',{points,stroke,'stroke-width':width,fill:'none','stroke-linejoin':'round','stroke-linecap':'round'}));
- for(const [point,text] of [[path[0],'起']]){
- routeLayer.append(svgElement('circle',{cx:point[0],cy:point[1],r:8,fill:'#12665c',stroke:'white','stroke-width':1.5}));const t=svgElement('text',{x:point[0],y:point[1]+3,'font-size':9,'text-anchor':'middle',fill:'white'});t.textContent=text;routeLayer.append(t)}
  const xs=path.map(p=>p[0]),ys=path.map(p=>p[1]);const l=Math.min(...xs),r=Math.max(...xs),t=Math.min(...ys),b=Math.max(...ys);
  x=196+.585*(l+r)/2;y=.585*(t+b)/2;z=Math.min(5,Math.max(1,Math.min(1244/(r-l+160),1265/(b-t+180))*.68));render();
- // Reserve the part of the viewport occupied by the navigation panel.
  const scale=map.getScreenCTM().a,panel=el('drawer').getBoundingClientRect();
  if(innerWidth<=740)y+=panel.height/(2*scale);else x-=panel.width/(2*scale);render();
- }
- select.onchange=draw;draw();
 }
 let walkDataReady;
 function loadWalkData(){
@@ -56,4 +97,19 @@ function loadWalkData(){
  }))).catch(err=>{walkDataReady=null;throw err});
  return walkDataReady;
 }
-window.addDirections=code=>{const button=document.createElement('button');button.className='goHere';button.textContent='去这里';button.onclick=async()=>{button.disabled=true;button.textContent='正在读取步道…';try{await loadWalkData();if(button.isConnected&&!buildingCard.hidden)directions(code)}catch{button.textContent='重新加载路线'}finally{button.disabled=false}};buildingCard.append(button)};
+window.addDirections=code=>{
+ for(const [side,label] of [['end','去这里'],['start','从这里出发']]){
+ const button=document.createElement('button');button.className='goHere';button.textContent=label;
+ button.onclick=async()=>{button.disabled=true;try{await loadWalkData();if(button.isConnected&&!buildingCard.hidden)directions(code,side)}catch{button.textContent='重试：'+label}finally{button.disabled=false}};
+ buildingCard.append(button);
+ }
+};
+const planButton=document.createElement('button');planButton.className='startWalk';planButton.textContent='路线';
+document.querySelector('.hud').append(planButton);
+planButton.onclick=async()=>{
+ planButton.disabled=true;
+ try{
+  await loadWalkData();if(mode!=='ground'){document.querySelector('[data-mode=ground]').click()}
+  directions(null,'end');
+ }catch{planButton.textContent='重试路线'}finally{planButton.disabled=false}
+};

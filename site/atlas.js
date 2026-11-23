@@ -54,7 +54,7 @@ function showBuilding(event){
 map.addEventListener('pointerdown',e=>{press=[e.clientX,e.clientY,e.pointerId]});
 map.addEventListener('pointermove',e=>{if(press&&Math.hypot(e.clientX-press[0],e.clientY-press[1])>6)press=null});
 map.addEventListener('pointercancel',()=>press=null);
-map.addEventListener('pointerup',e=>{if(press&&e.pointerId===press[2])showBuilding(e);press=null});
+map.addEventListener('pointerup',e=>{if(press&&e.pointerId===press[2]&&!window.pickWalkEndpoint?.(e))showBuilding(e);press=null});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')hideBuilding()});
 document.querySelectorAll('.row,[data-mode]').forEach(b=>b.addEventListener('click',hideBuilding));
 const ns=map.namespaceURI;
