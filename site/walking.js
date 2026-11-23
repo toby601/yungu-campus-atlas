@@ -160,7 +160,7 @@ window.pickWalkEndpoint=e=>{
  const other=pendingSide==='start'?'end':'start';
  let value;
  if(px>=0&&py>=0&&px<1244&&py<1265){
- const id=buildingPixels?.[4*(py*1244+px)];
+ const id=buildingAt(px,py);
  if(id)value=buildingData.items[id-1][0];
  else {
  const gate=Object.keys(gates).find(k=>Math.hypot(gates[k][0]-px,gates[k][1]-py)<8);
