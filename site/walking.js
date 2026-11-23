@@ -29,8 +29,12 @@ const routeXY=i=>i>=walkCount?ringSpine[i-walkCount]:walkXY(i);
 function contactsFor(value){
  if(!value)return new Map();
  if(typeof value==='string'&&!gates[value]){
-  const stops=new Map((walkEdges[value]||[]).map(([i,x,y])=>[i,[x,y]]));
-  if(value==='E10')return new Map(ringPortals.map(([cell])=>[cell,walkXY(cell)]).concat(ringSpine.map((p,n)=>[walkCount+n,p])));
+  const stops=new Map();
+  for(const [i,x,y] of walkEdges[value]||[]){
+   const [u,v]=walkXY(i),prior=stops.get(i);
+   if(!prior||Math.hypot(x-u,y-v)<Math.hypot(prior[0]-u,prior[1]-v))stops.set(i,[x,y]);
+  }
+  if(value==='E10')ringSpine.forEach((p,n)=>stops.set(walkCount+n,p));
   if(ringBranches[value]){
    const [n,x,y]=ringBranches[value];
    stops.set(walkCount+n,[x,y]);

@@ -25,6 +25,17 @@ for i in range(1244*1265):
     break
    if not paved[yy,xx]:
     # One antialias pixel immediately at the footprint edge.
-    if not mask[yy+dy,xx+dx]:break
+    # Painted building outlines are up to three map pixels wide.
+    # Look across the outline only when it ends on the same footprint.
+    for step in (1,2,3):
+     ex,ey=xx+step*dx,yy+step*dy
+     rr,gg,bb=rgb[yy+(step-1)*dy,xx+(step-1)*dx]
+     if gg>rr+8 or bb>rr+8:break
+     hit=int(mask[ey,ex])
+     if hit:
+      if hit not in seen:
+       ends.setdefault(data['items'][hit-1][0],[]).append([i,ex+.5,ey+.5]);seen.add(hit)
+      break
+    break
 (root/'walk-edges.js').write_text('const walkEdges='+json.dumps(ends,ensure_ascii=False,separators=(',',':'))+';','utf8')
 print('coverage',len(ends),'of',len(data['items']))

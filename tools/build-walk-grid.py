@@ -1,18 +1,30 @@
 """Extract conservative one-map-unit walking cells from the approved G raster."""
 from pathlib import Path
-import base64
+import base64,io,json
 from PIL import Image
 root=Path(__file__).resolve().parents[1]
 image=Image.open(root/'site/assets/campus.webp').convert('RGB')
 w,h=1244,1265
-bits=bytearray((w*h+7)//8)
-for y in range(h):
- for x in range(w):
-  px,py=x,y
-  if not (115<=px<=1125 and 116<=py<=1150):continue
-  samples=[image.getpixel((4*px+dx,4*py+dy)) for dx,dy in [(0,0),(-2,0),(2,0),(0,-2),(0,2)]]
-  if all(r>223 and g>210 and 175<b<240 and r-b>13 and g-b>7 for r,g,b in samples):
-   i=y*w+x;bits[i//8]|=1<<(i%8)
+# Sample the full road pixel so narrow paths survive downsampling.
+import numpy as np
+from PIL import ImageFilter
+rgb=np.asarray(image.resize((w,h),Image.Resampling.BOX)).astype(int)
+r,g,b=rgb.transpose(2,0,1)
+paved=(r>220)&(g>207)&(b>165)&(b<243)&(r-b>11)&(g-b>6)
+# Bridge threshold lines can divide two paved surfaces. Fill short neutral
+# seams only where pavement continues on opposite sides.
+closed=np.asarray(Image.fromarray(paved.astype('uint8')*255).filter(
+ ImageFilter.MaxFilter(7)).filter(ImageFilter.MinFilter(7)))>0
+neutral=(r>=g-2)&(g>=b)&(r-b<75)&(r>120)
+paved |= closed & neutral
+data,_=json.JSONDecoder().raw_decode((root/'site/atlas.js').read_text('utf8').split('const buildingData=',1)[1])
+buildings=np.asarray(Image.open(io.BytesIO(base64.b64decode(data['img']))).convert('L'))
+paved &= buildings==0
+paved[:116]=False
+paved[1151:]=False
+paved[:,:115]=False
+paved[:,1126:]=False
+bits=np.packbits(paved.ravel(),bitorder='little').tobytes()
 # Keep the connected campus walking network; isolated pale pixels can
 # otherwise attract a gate endpoint underneath a printed label.
 remaining={i for i in range(w*h) if bits[i//8] & (1<<(i%8))}
