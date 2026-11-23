@@ -32,13 +32,13 @@ function markBuilding(id,base,ox,oy,factor){
   for(let i=0;i<buildingPixels.length;i+=4){
     if(buildingPixels[i]!==id)continue;
     const edge=[-4,4,-4*c.width,4*c.width].some(offset=>buildingPixels[i+offset]!==id);
-    pixels.data[i]=edge?255:12;pixels.data[i+1]=edge?245:101;pixels.data[i+2]=edge?125:125;pixels.data[i+3]=edge?255:150;
+    pixels.data[i]=edge?255:12;pixels.data[i+1]=edge?245:101;pixels.data[i+2]=edge?125:125;pixels.data[i+3]=edge?255:0;
   }
   highlight.setAttribute('x',-ox);highlight.setAttribute('y',-oy);
   highlight.setAttribute('width',c.width*factor);highlight.setAttribute('height',c.height*factor);
   ctx.putImageData(pixels,0,0);highlight.setAttribute('href',c.toDataURL());
   const overlayParent=base.tagName==='image'?base.parentNode:base;
-  overlayParent.append(highlight);
+  if(base===el('campusBase'))groundLabels.before(highlight);else overlayParent.append(highlight);
 }
 function showBuilding(event){
   if(mode!=='ground'){pickUnderground(event);return}if(!buildingPixels)return;
