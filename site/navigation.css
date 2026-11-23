@@ -69,3 +69,15 @@ button:focus-visible,summary:focus-visible{outline:3px solid #c18a29;outline-off
 #undergroundSelection[data-floor-label=B2] b{background:#81501e}
 #undergroundSelection button{width:44px;height:44px;color:var(--ink);font-size:22px}
 @media(max-width:740px){.stage #undergroundSelection{top:calc(136px + env(safe-area-inset-top))}.stage #undergroundSelection.below{top:auto;bottom:calc(132px + env(safe-area-inset-bottom))}}
+
+#drawer .buildingCard details{grid-column:1/-1;pointer-events:auto}
+#drawer .buildingCard summary{min-height:44px;padding:12px 0;color:var(--pine);font-weight:650}
+#drawer .buildingCard .goHere{grid-column:1/-1; margin:2px 0}
+#drawer .goHere+.goHere{background:#e2ecd9;color:var(--pine)}
+.hud .startWalk{order:-1;background:var(--pine);color:white}
+.hud .toggle{background:#e8efdf;color:var(--pine)}
+#map.under .ground-labels{display:none}
+.backDirectory{display:none}
+#drawer:not(.routing):has(.buildingCard:not([hidden])) .backDirectory{display:block;align-self:flex-start;min-height:40px;color:var(--pine)}
+#drawer:has(.buildingCard:not([hidden])) #atlasQuery,#drawer:has(.buildingCard:not([hidden])) #allBuildings{display:none}
+@media(max-width:740px){#drawer:has(.buildingCard:not([hidden])) .repoLink{display:none}}

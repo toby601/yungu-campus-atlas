@@ -22,3 +22,12 @@ grip.addEventListener('pointermove',e=>{if(dragStart)el('drawer').style.height=M
 grip.addEventListener('pointerup',()=>dragStart=null);grip.addEventListener('pointercancel',()=>dragStart=null);
 const drawerTitle=grip.querySelector('h1');
 new MutationObserver(()=>{drawerTitle.textContent=el('drawer').classList.contains('routing')?'步行路线':'建筑导航'}).observe(el('drawer'),{attributes:true,attributeFilter:['class']});
+const backToDirectory=document.createElement('button');
+backToDirectory.className='backDirectory';backToDirectory.textContent='‹ 建筑目录';
+el('detailsMount').before(backToDirectory);
+backToDirectory.onclick=()=>{hideBuilding();query.value='';listBuildings();query.focus()};
+function updateSelectionTitle(){
+ if(el('drawer').classList.contains('routing'))drawerTitle.textContent='步行路线';
+ else drawerTitle.textContent=buildingCard.hidden?'建筑导航':'地点与路线';
+}
+new MutationObserver(updateSelectionTitle).observe(buildingCard,{attributes:true,attributeFilter:['hidden']});
