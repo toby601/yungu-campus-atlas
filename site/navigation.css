@@ -2,3 +2,4 @@
 .repoLink{margin-left:auto;color:#22665f;text-decoration:underline;text-underline-offset:3px}.atlasbar #atlasDirectory{margin-left:0}.buildingCard p{white-space:pre-line}@media(max-width:560px){.repoLink{font-size:13px}}
 .buildingCard:has(a){pointer-events:auto}
 main{height:100dvh}#drawer{width:min(310px,80vw);gap:12px;background:#fff;box-shadow:0 4px 18px #263e461a}#drawer .brand{padding:0 0 10px}#drawer h1{font-size:21px}#atlasQuery{width:100%;border:1px solid #b8cfca;border-radius:7px;padding:9px 11px;font:inherit}#allBuildings{margin:0;flex:1;min-height:0;max-height:none;overflow:auto}#allBuildings summary{padding:9px 5px;font-weight:650}#allBuildings button{padding:8px 12px}.buildingCard{position:static;max-width:none;max-height:34dvh;margin:0;box-shadow:none}.repoLink{margin:0}.scrim,main.open .scrim{display:none}#place{cursor:pointer}main.open .hud{visibility:hidden}
+.stage .zoom{bottom:calc(76px + env(safe-area-inset-bottom,0px))}
