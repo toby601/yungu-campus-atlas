@@ -105,6 +105,37 @@ function findWalk(start,end){
  }
  return [];
 }
+// Walk every grid cell touched by a straight segment, including both sides
+// of a diagonal corner. Inputs are integer outdoor route cells.
+function clearWalkSegment([x,y],[endX,endY]){
+ const dx=Math.abs(endX-x),dy=Math.abs(endY-y);
+ const sx=Math.sign(endX-x),sy=Math.sign(endY-y);
+ let ix=0,iy=0;
+ while(ix<dx||iy<dy){
+  const cross=(2*ix+1)*dy-(2*iy+1)*dx;
+  if(cross===0&&(!road(y*walkWidth+x+sx)||!road((y+sy)*walkWidth+x)))return false;
+  if(cross<=0){x+=sx;ix++}
+  if(cross>=0){y+=sy;iy++}
+  if(!road(y*walkWidth+x))return false;
+ }
+ return true;
+}
+const ringStations=new Set(ringSpine);
+function straightenWalk(path){
+ if(path.length<3)return path;
+ const result=[path[0]];
+ // The end approaches, portals and indoor spine carry their own geometry.
+ for(let i=1;i<path.length-1;){
+  result.push(path[i]);
+  let next=i+1;
+  if(!ringStations.has(path[i])&&next<path.length-1&&!ringStations.has(path[next])){
+   while(next+1<path.length-1&&!ringStations.has(path[next+1])&&clearWalkSegment(path[i],path[next+1]))next++;
+  }
+  i=next;
+ }
+ result.push(path[path.length-1]);
+ return result;
+}
 function svgElement(tag,attrs){const n=document.createElementNS(map.namespaceURI,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);return n}
 const endpoints={start:null,end:null};
 let pendingSide=null;
@@ -154,7 +185,7 @@ function showPlanner(){
  const path=findWalk(endpoints.start,endpoints.end),note=document.createElement('p');walkPanel.append(note);
  if(!path.length){note.textContent='底图中未找到连续接边的步道，可改选建筑旁的道路。';return}
  if(path.some(p=>ringSpine.includes(p)))note.textContent='经 E10 学术环首层 · 室内段为示意路线';else note.textContent='按地上底图估算，实际出入口及通行情况以现场为准。';
- const points=path.map(p=>p.join(',')).join(' ');
+ const points=straightenWalk(path).map(p=>p.join(',')).join(' ');
  for(const [stroke,width] of [['white',6],['#08746a',3.5]])routeLayer.append(svgElement('polyline',{points,stroke,'stroke-width':width,fill:'none','stroke-linejoin':'round','stroke-linecap':'round'}));
  const xs=path.map(p=>p[0]),ys=path.map(p=>p[1]);const l=Math.min(...xs),r=Math.max(...xs),t=Math.min(...ys),b=Math.max(...ys);
  x=196+.585*(l+r)/2;y=.585*(t+b)/2;z=Math.min(5,Math.max(1,Math.min(1244/(r-l+160),1265/(b-t+180))*.68));render();
