@@ -96,17 +96,34 @@ render=function(){previousFloorRender();const campus=el('area').value==='campus'
 };
 render();
 let undergroundHighlight;
-function clearUnderground(){undergroundHighlight?.remove();undergroundHighlight=null}
+const selection=document.createElement('aside');
+selection.id='undergroundSelection';selection.hidden=true;
+selection.setAttribute('aria-label','选中的地下区域');
+const selectionText=document.createElement('span');
+selectionText.setAttribute('aria-live','polite');
+const dismissSelection=document.createElement('button');
+dismissSelection.textContent='×';dismissSelection.setAttribute('aria-label','取消地下区域选中');
+dismissSelection.onclick=()=>{clearUnderground();map.focus({preventScroll:true})};
+selection.append(selectionText,dismissSelection);document.querySelector('.stage').append(selection);
+function clearUnderground(){undergroundHighlight?.remove();undergroundHighlight=null;selection.hidden=true}
 function pickUnderground(event){
   hideBuilding();
   const floor=mode.toUpperCase();
   const node=document.elementsFromPoint(event.clientX,event.clientY).find(n=>n.dataset?.floor===floor);
   if(!node)return;
-  const copy=node.cloneNode(false);copy.removeAttribute('id');delete copy.dataset.floor;delete copy.dataset.underground;
+  const copy=node.cloneNode(true);copy.removeAttribute('id');delete copy.dataset.floor;delete copy.dataset.underground;
   const matrix=map.getScreenCTM().inverse().multiply(node.getScreenCTM());
-  copy.setAttribute('transform',matrix.toString());copy.style.cssText='pointer-events:none;stroke:#075d68;stroke-width:3px;vector-effect:non-scaling-stroke;stroke-linejoin:round;fill:'+ (node.style.pointerEvents==='stroke'?'none':'#078f89')+';fill-opacity:.48';
+  copy.setAttribute('transform',matrix.toString());copy.style.cssText='pointer-events:none;stroke:#075d68;stroke-width:3px;vector-effect:non-scaling-stroke;stroke-linejoin:round;fill:'+ (node.style.pointerEvents==='stroke'?'none':floor==='B2'?'#da9132':'#078f89')+';fill-opacity:.48';
+  if(floor==='B2')copy.style.stroke='#885417';
   map.append(copy);undergroundHighlight=copy;
-  buildingCard.replaceChildren();for(const [tag,value] of [['b',floor],['strong',node.dataset.underground]]){const t=document.createElement(tag);t.textContent=value;buildingCard.append(t)}buildingCard.hidden=false;drawer(true);
+  if(shell.classList.contains('open'))drawer(false);
+  const badge=document.createElement('b');
+  badge.textContent=floor;
+  const label=node.querySelector('title')?.textContent||node.dataset.underground;
+  selectionText.replaceChildren(badge,document.createTextNode(label));
+  selection.dataset.floorLabel=floor;
+  selection.classList.toggle('below',event.clientY<map.getBoundingClientRect().top+map.clientHeight/2);
+  selection.hidden=false;
 }
 const gateLocations=[[601,148,'北校门',0,-12],[126,594,'4号门',-23,-9],[1114,637,'6号门',29,5],[464,1139,'2号门',0,23],[602,1140,'南校门 / 1号门',0,23],[672,1137,'8号门',17,21]];
 const gateLabels=document.createElementNS(ns,'g');

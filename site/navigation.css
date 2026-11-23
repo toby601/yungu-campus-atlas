@@ -60,3 +60,12 @@ button:focus-visible,summary:focus-visible{outline:3px solid #c18a29;outline-off
  main #drawer.routing{height:auto;max-height:58dvh}
 }
 @media(min-width:1101px){main #drawer.routing{bottom:auto;max-height:calc(100dvh - 32px)}}
+
+.stage #undergroundSelection{position:absolute;inset:88px auto auto 50%;transform:translateX(-50%);z-index:3;display:flex;flex-direction:row;align-items:center;width:max-content;max-width:calc(100% - 24px);padding:3px 4px 3px 8px;gap:8px;background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-radius:14px;box-shadow:var(--lift)}
+.stage #undergroundSelection[hidden]{display:none}
+.stage #undergroundSelection.below{top:auto;bottom:80px}
+#undergroundSelection span{display:flex;align-items:center;gap:9px;font-weight:650}
+#undergroundSelection b{padding:5px 8px;background:var(--pine);color:white;border-radius:8px}
+#undergroundSelection[data-floor-label=B2] b{background:#81501e}
+#undergroundSelection button{width:44px;height:44px;color:var(--ink);font-size:22px}
+@media(max-width:740px){.stage #undergroundSelection{top:calc(136px + env(safe-area-inset-top))}.stage #undergroundSelection.below{top:auto;bottom:calc(132px + env(safe-area-inset-bottom))}}
