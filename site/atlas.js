@@ -37,17 +37,36 @@ function hideBuilding(){window.clearWalk?.();clearUnderground();buildingCard.hid
 function markBuilding(id,base,ox,oy,factor){
   highlight.replaceChildren();
   highlight.setAttribute('transform','translate('+(-ox)+' '+(-oy)+') scale('+factor+')');
-  for(const [color,width] of [['#fffbea',6],['#00655d',3]]){
-    const outline=footprints[id-1].path.cloneNode(false);
+  const shape=footprints[id-1];
+  const clip=document.createElementNS(map.namespaceURI,'clipPath');
+  clip.id='outside-building-selection';
+  const outside=shape.path.cloneNode(false);
+  const pad=8;
+  outside.setAttribute('d','M'+(shape.left-pad)+' '+(shape.top-pad)+'H'+(shape.right+pad)+'V'+(shape.bottom+pad)+'H'+(shape.left-pad)+'Z '+shape.path.getAttribute('d'));
+  outside.setAttribute('clip-rule','evenodd');
+  clip.append(outside);highlight.append(clip);
+  for(const [color,width] of [['#fffbea',5],['#00655d',2.8]]){
+    const outline=shape.path.cloneNode(false);
     outline.setAttribute('fill','none');
     outline.setAttribute('stroke',color);
-    outline.setAttribute('stroke-width',width);
+    outline.dataset.maxWidth=width;
     outline.setAttribute('stroke-linejoin','round');
-    outline.setAttribute('vector-effect','non-scaling-stroke');
+    outline.setAttribute('clip-path','url(#outside-building-selection)');
     highlight.append(outline);
   }
   const overlayParent=base.tagName==='image'?base.parentNode:base;
-  if(base===el('campusBase'))groundLabels.before(highlight);else overlayParent.append(highlight);
+  overlayParent.append(highlight);
+  sizeSelectionOutline();
+}
+function sizeSelectionOutline(){
+  if(!highlight.isConnected)return;
+  const matrix=highlight.getScreenCTM();
+  if(!matrix)return;
+  const scale=Math.hypot(matrix.a,matrix.b);
+  if(!scale)return;
+  for(const line of highlight.querySelectorAll('[data-max-width]')){
+    line.setAttribute('stroke-width',line.dataset.maxWidth*Math.max(.42,Math.min(scale,1))/scale);
+  }
 }
 function showBuilding(event){
   if(mode!=='ground'){pickUnderground(event);return}
@@ -224,3 +243,5 @@ render=function(){
  img.src=url;
 };
 requestAnimationFrame(()=>requestAnimationFrame(render));
+
+const renderWithSelection=render;render=function(){renderWithSelection();sizeSelectionOutline()};
