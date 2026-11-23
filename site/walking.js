@@ -12,25 +12,92 @@ function nearestRoad(point,accept){
  for(let i=0;i<walkCount;i++){if(!road(i)||!accept(i))continue;const [x,y]=walkXY(i),d=(x-point[0])**2+(y-point[1])**2;if(d<min){best=i;min=d}}
  return min<=85**2?best:-1;
 }
+const ringSpine=[[510,561],[507,567],[502,572],[498,577],[494,583],[491,589],[488,596],[486,602],[482,608],[481,615],[478,621],[477,628],[477,635],[476,642],[476,649],[476,656],[476,662],[477,669],[478,676],[480,683],[482,689],[484,696],[486,702],[489,708],[493,714],[497,720],[500,726],[504,732],[508,737],[512,743],[518,747],[522,752],[528,756],[533,760],[539,764],[545,768],[551,771],[558,773],[564,776],[571,778],[577,781],[584,781],[591,782],[598,783],[605,783],[612,783],[619,783],[625,782],[632,782],[639,779],[646,777],[652,775],[659,773],[665,770],[671,766],[677,763],[683,759],[688,755],[694,751],[698,745],[703,740],[708,736],[712,730],[716,724],[719,718],[724,713],[727,707],[729,700],[732,694],[735,688],[736,681],[737,674],[738,667],[738,660],[738,653],[730,647]];
+const ringBranches={"E1":[65,738,720],"E2":[58,705,762],"E3":[53,680,786],"E4":[48,633,798],"E5":[40,571,795],"E6":[29,502,756],"E7":[29,502,755],"E8":[18,462,679],"E9":[10,464,613]};
+const ringPortals=[[688448,0],[796882,75],[868778,20],[846424,20],[970850,34],[924838,34],[977214,53],[932407,53],[878963,64]];
+// Schematic first-floor corridor. Portal pairs connect outdoor pavement cells to spine stations.
+const ringLinks=new Map();
+function linkRing(a,b){
+ for(const [from,to] of [[a,b],[b,a]]){
+  if(!ringLinks.has(from))ringLinks.set(from,[]);
+  ringLinks.get(from).push(to);
+ }
+}
+for(let n=1;n<ringSpine.length;n++)linkRing(walkCount+n-1,walkCount+n);
+for(const [cell,n] of ringPortals)linkRing(cell,walkCount+n);
+const routeXY=i=>i>=walkCount?ringSpine[i-walkCount]:walkXY(i);
 function contactsFor(value){
  if(!value)return new Map();
- if(typeof value==='string'&&!gates[value])return new Map((walkEdges[value]||[]).map(([i,x,y])=>[i,[x,y]]));
+ if(typeof value==='string'&&!gates[value]){
+  const stops=new Map((walkEdges[value]||[]).map(([i,x,y])=>[i,[x,y]]));
+  if(value==='E10')return new Map(ringPortals.map(([cell])=>[cell,walkXY(cell)]).concat(ringSpine.map((p,n)=>[walkCount+n,p])));
+  if(ringBranches[value]){
+   const [n,x,y]=ringBranches[value];
+   stops.set(walkCount+n,[x,y]);
+  }
+  return stops;
+ }
  const i=typeof value==='number'?value:nearestRoad(gates[value],()=>true);
  return i<0?new Map():new Map([[i,walkXY(i)]]);
 }
 function findWalk(start,end){
  const starts=contactsFor(start),ends=contactsFor(end);
  if(!starts.size||!ends.size)return [];
- const prev=new Int32Array(walkCount).fill(-1),queue=new Int32Array(walkCount);let head=0,tail=0;
- for(const i of starts.keys()){queue[tail++]=i;prev[i]=i}
- while(head<tail){
-  const i=queue[head++];
-  if(ends.has(i)){
-   const path=[ends.get(i)];let j=i;
-   while(prev[j]!==j){path.push(walkXY(j));j=prev[j]}
-   path.push(walkXY(j),starts.get(j));return path.reverse();
+ // Multi-source Dijkstra, including the short approaches to building edges.
+ const prev=new Int32Array(walkCount+ringSpine.length).fill(-1);
+ const dist=new Float64Array(walkCount+ringSpine.length).fill(Infinity), heap=[];
+ function push(cell,cost){
+  let n=heap.length;
+  while(n>0){
+   const parent=(n-1)>>1;
+   if(heap[parent].cost<=cost)break;
+   heap[n]=heap[parent];n=parent;
   }
-  for(const j of [i-1,i+1,i-walkWidth,i+walkWidth])if(road(j)&&prev[j]===-1&&Math.abs(j%walkWidth-i%walkWidth)<=1){prev[j]=i;queue[tail++]=j}
+  heap[n]={cell,cost};
+ }
+ function pop(){
+  const first=heap[0],last=heap.pop();
+  if(heap.length){
+   let n=0;
+   while(2*n+1<heap.length){
+    let child=2*n+1;
+    if(child+1<heap.length&&heap[child+1].cost<heap[child].cost)child++;
+    if(last.cost<=heap[child].cost)break;
+    heap[n]=heap[child];n=child;
+   }
+   heap[n]=last;
+  }
+  return first;
+ }
+ function approach(i,p){const [x,y]=routeXY(i);return Math.hypot(x-p[0],y-p[1])}
+ for(const [i,p] of starts){dist[i]=approach(i,p);prev[i]=i;push(i,dist[i])}
+ let best=Infinity,goal=-1;
+ while(heap.length){
+  const {cell:i,cost}=pop();
+  if(cost>=best)break;
+  if(cost!==dist[i])continue;
+  if(ends.has(i)){
+   const total=cost+approach(i,ends.get(i));
+   if(total<best){best=total;goal=i}
+  }
+  for(const j of ringLinks.get(i)||[]){
+   const next=cost+approach(i,routeXY(j));
+   if(next<dist[j]){dist[j]=next;prev[j]=i;push(j,next)}
+  }
+  if(i>=walkCount)continue;
+  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+   if(!dx&&!dy)continue;
+   const x=i%walkWidth+dx,j=i+dx+dy*walkWidth;
+   if(x<0||x>=walkWidth||!road(j))continue;
+   if(dx&&dy&&(!road(i+dx)||!road(i+dy*walkWidth)))continue;
+   const next=cost+(dx&&dy?Math.SQRT2:1);
+   if(next<dist[j]){dist[j]=next;prev[j]=i;push(j,next)}
+  }
+ }
+ if(goal>=0){
+  const path=[ends.get(goal)];let i=goal;
+  while(prev[i]!==i){path.push(routeXY(i));i=prev[i]}
+  path.push(routeXY(i),starts.get(i));return path.reverse();
  }
  return [];
 }
@@ -82,7 +149,7 @@ function showPlanner(){
  if(endpoints.start==null||endpoints.end==null)return;
  const path=findWalk(endpoints.start,endpoints.end),note=document.createElement('p');walkPanel.append(note);
  if(!path.length){note.textContent='底图中未找到连续接边的步道，可改选建筑旁的道路。';return}
- note.textContent='按地上底图估算，实际出入口及通行情况以现场为准。';
+ if(path.some(p=>ringSpine.includes(p)))note.textContent='经 E10 学术环首层 · 室内段为示意路线';else note.textContent='按地上底图估算，实际出入口及通行情况以现场为准。';
  const points=path.map(p=>p.join(',')).join(' ');
  for(const [stroke,width] of [['white',6],['#08746a',3.5]])routeLayer.append(svgElement('polyline',{points,stroke,'stroke-width':width,fill:'none','stroke-linejoin':'round','stroke-linecap':'round'}));
  const xs=path.map(p=>p[0]),ys=path.map(p=>p[1]);const l=Math.min(...xs),r=Math.max(...xs),t=Math.min(...ys),b=Math.max(...ys);
