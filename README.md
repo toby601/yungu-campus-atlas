@@ -41,3 +41,7 @@ https://wikilake.netlify.app/buildings/Yungu/E/E12
 - `.github/workflows/pages.yml`：构建和部署 GitHub Pages。Netlify 构建命令为 `node build.cjs`，发布目录为 `site`。
 
 程序代码采用 [MIT 许可证](LICENSE)。底图、工程图转绘及引用介绍的使用权依各自权利人和来源规定；楼宇资料来源见对应 Markdown。
+
+## 地上步行导航
+
+搜索或点选建筑，选择“去这里”，再选择起点。路线默认从 4 号门出发。白边青线表示根据地上底图可通行颜色推算的路线，端点取楼旁可通行处。该路线没有实地核验，不提供地下、无障碍或应急路线。移动端可拖动底部面板标题调整高度。修改地上底图后，安装 Pillow 并运行 `python tools/build-walk-grid.py` 更新步道数据。

@@ -18,7 +18,7 @@ pickImage.onload=()=>{const canvas=document.createElement('canvas');canvas.width
 pickImage.src='data:image/png;base64,'+buildingData.img;
 const highlight=document.createElementNS(map.namespaceURI,'image');
 highlight.style.pointerEvents='none';
-function hideBuilding(){clearUnderground();buildingCard.hidden=true;highlight.remove()}
+function hideBuilding(){window.clearWalk?.();clearUnderground();buildingCard.hidden=true;highlight.remove()}
 function markBuilding(id,base,ox,oy,factor){
   const c=document.createElement('canvas');c.width=pickImage.width;c.height=pickImage.height;
   const ctx=c.getContext('2d'),pixels=ctx.createImageData(c.width,c.height);
@@ -41,7 +41,7 @@ function showBuilding(event){
   const px=Math.floor((ox+local.x)/factor),py=Math.floor((oy+local.y)/factor);
   const id=px>=0&&py>=0&&px<pickImage.width&&py<pickImage.height?buildingPixels[4*(py*pickImage.width+px)]:0;
   if(!id){hideBuilding();return}
-  markBuilding(id,el(ids[area]),ox,oy,factor);const [code,name,category]=buildingData.items[id-1];
+  window.clearWalk?.();markBuilding(id,el(ids[area]),ox,oy,factor);const [code,name,category]=buildingData.items[id-1];
   buildingCard.replaceChildren();for(const [tag,value] of [['b',code],['strong',name],['small',category]]){const t=document.createElement(tag);t.textContent=value;buildingCard.append(t)}
   const intro=cardIntros[code];
   if(intro){
@@ -49,7 +49,7 @@ function showBuilding(event){
     paragraph.textContent=intro.summary;source.href=intro.url;source.textContent='资料来源 ↗';source.target='_blank';source.rel='noopener noreferrer';
     buildingCard.append(paragraph,source);
   }
-  const edit=document.createElement('a');edit.href='https://github.com/toby601/yungu-campus-atlas/blob/main/site/buildings/'+encodeURIComponent(code)+'.md';edit.textContent='完善这栋楼的介绍 ↗';edit.target='_blank';edit.rel='noopener noreferrer';buildingCard.append(edit);buildingCard.hidden=false;drawer(true);
+  const edit=document.createElement('a');edit.href='https://github.com/toby601/yungu-campus-atlas/blob/main/site/buildings/'+encodeURIComponent(code)+'.md';edit.textContent='完善这栋楼的介绍 ↗';edit.target='_blank';edit.rel='noopener noreferrer';buildingCard.append(edit);window.addDirections?.(code);buildingCard.hidden=false;drawer(true);
 }
 map.addEventListener('pointerdown',e=>{press=[e.clientX,e.clientY,e.pointerId]});
 map.addEventListener('pointermove',e=>{if(press&&Math.hypot(e.clientX-press[0],e.clientY-press[1])>6)press=null});

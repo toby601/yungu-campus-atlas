@@ -16,3 +16,7 @@ function listBuildings(){
 }
 query.oninput=listBuildings;query.onkeydown=e=>{if(e.key==='Enter'&&query.value.trim())listing.querySelector('button')?.click()};
 el('place').onclick=()=>drawer(true);listBuildings();
+const grip=el('drawer').querySelector('.brand');let dragStart;
+grip.addEventListener('pointerdown',e=>{if(innerWidth>740||e.target.closest('button'))return;dragStart=[e.clientY,el('drawer').offsetHeight];grip.setPointerCapture(e.pointerId)});
+grip.addEventListener('pointermove',e=>{if(dragStart)el('drawer').style.height=Math.max(innerHeight*.30,Math.min(innerHeight*.74,dragStart[1]+dragStart[0]-e.clientY))+'px'});
+grip.addEventListener('pointerup',()=>dragStart=null);grip.addEventListener('pointercancel',()=>dragStart=null);
