@@ -1,17 +1,17 @@
-"""Extract conservative three-map-unit walking cells from the approved G raster."""
+"""Extract conservative one-map-unit walking cells from the approved G raster."""
 from pathlib import Path
 import base64
 from PIL import Image
 root=Path(__file__).resolve().parents[1]
 image=Image.open(root/'site/assets/campus.webp').convert('RGB')
-w,h=415,422
+w,h=1244,1265
 bits=bytearray((w*h+7)//8)
 for y in range(h):
  for x in range(w):
-  px,py=x*3,y*3
+  px,py=x,y
   if not (115<=px<=1125 and 116<=py<=1150):continue
-  samples=[image.getpixel((4*px+dx,4*py+dy)) for dx,dy in [(0,0),(-4,0),(4,0),(0,-4),(0,4)]]
-  if all(r>230 and g>217 and 182<b<237 and r-b>15 and g-b>9 for r,g,b in samples):
+  samples=[image.getpixel((4*px+dx,4*py+dy)) for dx,dy in [(0,0),(-2,0),(2,0),(0,-2),(0,2)]]
+  if all(r>223 and g>210 and 175<b<240 and r-b>13 and g-b>7 for r,g,b in samples):
    i=y*w+x;bits[i//8]|=1<<(i%8)
 # Keep the connected campus walking network; isolated pale pixels can
 # otherwise attract a gate endpoint underneath a printed label.
