@@ -1,0 +1,8 @@
+name: Deploy Pages with artifact lookup retries
+description: Retry only when the uploaded Pages artifact cannot yet be found.
+outputs:
+  page_url:
+    description: Published Pages address
+runs:
+  using: node24
+  main: retry.cjs
