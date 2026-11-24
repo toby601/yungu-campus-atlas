@@ -46,6 +46,29 @@ for idx, (code,name,category) in enumerate(data['items'],1):
     patch.putalpha(Image.fromarray(ink.astype('uint8')*255).filter(ImageFilter.MaxFilter(3)))
     patch.putalpha(Image.fromarray(np.minimum(np.asarray(patch.getchannel('A')),np.asarray(clip))))
     layer.alpha_composite(patch,(x*scale,y*scale))
+    if code.startswith('D1') and 'D20' in code:
+        # The printed group name crosses several buildings and the paths between them.
+        # Restore only the ink strokes, sampling the surrounding map colours.
+        origin=(181,729)
+        region=ground.crop((origin[0]*4,origin[1]*4,281*4,740*4))
+        rgb=np.asarray(region).astype(float)
+        ink=Image.fromarray((rgb.mean(2)<151).astype('uint8')*255).filter(ImageFilter.MaxFilter(5))
+        missing=np.asarray(ink)>0
+        while missing.any():
+            known=np.pad(~missing,1)
+            samples=np.pad(rgb,((1,1),(1,1),(0,0)),mode='edge')
+            total=np.zeros_like(rgb)
+            count=np.zeros(missing.shape)
+            h0,w0=missing.shape
+            for dy,dx in [(0,1),(2,1),(1,0),(1,2)]:
+                valid=known[dy:dy+h0,dx:dx+w0]
+                total+=samples[dy:dy+h0,dx:dx+w0]*valid[:,:,None]
+                count+=valid
+            edge=missing & (count>0)
+            rgb[edge]=total[edge]/count[edge,None]
+            missing[edge]=False
+        repair=Image.fromarray(rgb.astype('uint8')).convert('RGBA')
+        layer.alpha_composite(repair.resize((100*scale,11*scale)),(origin[0]*scale,origin[1]*scale))
     draw=ImageDraw.Draw(layer)
     for n,line in enumerate(lines):
         anchor_y=y+yy[j]+(n-(len(lines)-1)/2)*size*1.24
