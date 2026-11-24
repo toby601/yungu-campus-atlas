@@ -9,7 +9,7 @@ const catalog=fs.readdirSync(dir).filter(f=>f.endsWith('.md') && f!=='README.md'
  return {code:path.basename(file,'.md'),name,category,summary:body.trim(),url};
 }).sort((a,b)=>a.code.localeCompare(b.code,'en',{numeric:true}));
 fs.writeFileSync(path.join(site,'catalog.js'),'const atlasCatalog='+JSON.stringify(catalog)+';\n');
-const index=['# 建筑介绍','','按楼号首字母分区，区内按数字从小到大排列。'];
+const index=['# 建筑介绍','','按楼号首字母分区，区内按数字从小到大排列。','','[建筑介绍填写规范与模板](../../BUILDING_GUIDE.md)'];
 let section='';
 for(const {code,name} of catalog){
  if(code[0]!==section){

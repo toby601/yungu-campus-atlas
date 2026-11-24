@@ -86,7 +86,7 @@ function showBuilding(event){
   if(intro){
     const paragraph=document.createElement('p'),source=document.createElement('a');
     paragraph.textContent=intro.summary;source.href=intro.url;source.textContent='资料来源 ↗';source.target='_blank';source.rel='noopener noreferrer';
-    more.append(paragraph,source);
+    more.append(paragraph);if(intro.url)more.append(source);
   }
   const edit=document.createElement('a');edit.href='https://github.com/toby601/yungu-campus-atlas/blob/main/site/buildings/'+encodeURIComponent(code)+'.md';edit.textContent='完善这栋楼的介绍 ↗';edit.target='_blank';edit.rel='noopener noreferrer';more.append(edit);buildingCard.append(more);buildingCard.hidden=false;drawer(true);
 }
