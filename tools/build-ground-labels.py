@@ -19,11 +19,17 @@ for idx, (code,name,category) in enumerate(data['items'],1):
     integral=np.pad(inside.astype(int),((1,0),(1,0))).cumsum(0).cumsum(1)
     # Keep short codes visible on narrow wings. Use full names where they fit.
     lines=[code,name] if code.startswith(('E','J','A')) else [code]
-    for size in range(15,3,-1):
+    college=code in {'H1','H2','H3','H4'}
+    for size in range(22 if college else 15,3,-1):
         font=ImageFont.truetype('C:/Windows/Fonts/msyhbd.ttc',size*scale)
         widths=[font.getlength(t)/scale for t in lines]
         rw=int(np.ceil(max(widths)))+2
         rh=int(np.ceil(size*1.24*len(lines)))+1
+        if college:
+            # Fit the visible glyphs rather than reserving a full line of leading.
+            left,top,right,bottom=font.getbbox(code)
+            rw=int(np.ceil((right-left)/scale))+2
+            rh=int(np.ceil((bottom-top)/scale))+2
         if rw>w or rh>h:continue
         valid=integral[rh:,rw:]-integral[:-rh,rw:]-integral[rh:,:-rw]+integral[:-rh,:-rw]==rw*rh
         yy,xx=np.where(valid)
@@ -41,7 +47,11 @@ for idx, (code,name,category) in enumerate(data['items'],1):
     patch=Image.new('RGBA',crop.size,tuple(fill.astype(int))+(0,))
     patch.putalpha(Image.fromarray(ink.astype('uint8')*255).filter(ImageFilter.MaxFilter(3)))
     draw=ImageDraw.Draw(patch)
-    for n,line in enumerate(lines):
+    if college:
+        draw.text(((xx[j]+rw/2)*scale-(left+right)/2,(yy[j]+rh/2)*scale-(top+bottom)/2),
+                  code,font=font,fill='#123d40')
+        print(code,size)
+    for n,line in enumerate([] if college else lines):
         draw.text(((xx[j]+rw/2)*scale,(yy[j]+(n+.5)*size*1.24+.5)*scale),line,font=font,anchor='mm',fill='#123d40')
     patch.putalpha(Image.fromarray(np.minimum(np.asarray(patch.getchannel('A')),np.asarray(clip))))
     layer.alpha_composite(patch,(x*scale,y*scale))
