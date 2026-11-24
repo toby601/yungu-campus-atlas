@@ -91,7 +91,7 @@ for idx in range(1,len(data['items'])+1):
     shapes.append([int(xs.min()),int(ys.min()),int(xs.max()+1),int(ys.max()+1),''.join(commands)])
     if data['items'][idx-1][0]=='E10':
         shapes[-1].append(academic_ring_curve(max(contours,key=len)))
-    if data['items'][idx-1][0].startswith(('C','F')):
+    if data['items'][idx-1][0].startswith(('C','F','G','H')):
         surface=''.join(facade_path(c) for c in contours)
         color=np.median(ground[ys*4+2,xs*4+2],axis=0).astype(int)
         shapes[-1].extend([surface,'#%02x%02x%02x'%tuple(color)])

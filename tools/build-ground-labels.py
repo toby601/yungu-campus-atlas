@@ -34,7 +34,7 @@ for idx, (code,name,category) in enumerate(data['items'],1):
     x,y=xs.min(),ys.min()
     w,h=xs.max()-x+1,ys.max()-y+1
     inside=mask[y:y+h,x:x+w]==idx
-    if code.startswith(('C','F')):
+    if code.startswith(('C','F','G','H')):
         # Old raster outlines extend past the picking mask. Continue the
         # adjacent ground colour beneath the new vector, in a narrow band.
         pad=5
@@ -113,7 +113,7 @@ for idx, (code,name,category) in enumerate(data['items'],1):
         # The old caption spans almost the entire narrow footprint.
         patch=Image.new('RGBA',crop.size,(169,170,206,255))
         patch.putalpha(clip)
-    if code!='E10' and not code.startswith(('C','F')):  # Vector surfaces already cover the old lettering.
+    if code!='E10' and not code.startswith(('C','F','G','H')):  # Vector surfaces already cover the old lettering.
         layer.alpha_composite(patch,(x*scale,y*scale))
     if code.startswith('D1') and 'D20' in code:
         # The printed group name crosses several buildings and the paths between them.

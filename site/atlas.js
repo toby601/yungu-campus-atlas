@@ -27,7 +27,7 @@ function buildingAt(x,y){
   return footprints.findIndex(f=>point.x>=f.left&&point.x<f.right&&point.y>=f.top&&point.y<f.bottom&&f.path.isPointInFill(point))+1;
 }
 const groundLabels=document.createElementNS(map.namespaceURI,'image');
-groundLabels.setAttribute('href','assets/building-labels.webp?v=cf-edges-1');
+groundLabels.setAttribute('href','assets/building-labels.webp?v=gh-edges-1');
 groundLabels.setAttribute('width','1244');groundLabels.setAttribute('height','1265');
 groundLabels.setAttribute('class','ground-labels');groundLabels.style.pointerEvents='none';
 const surfaces=document.createElementNS(map.namespaceURI,'g');
@@ -44,7 +44,7 @@ for(const {curve,color} of footprints){
   surfaces.append(surface);
 }
 const facadeBacking=groundLabels.cloneNode(false);
-facadeBacking.setAttribute('href','assets/facade-edges.webp');
+facadeBacking.setAttribute('href','assets/facade-edges.webp?v=gh-edges-1');
 el('campusBase').after(facadeBacking,surfaces,groundLabels);
 const highlight=document.createElementNS(map.namespaceURI,'g');
 highlight.style.pointerEvents='none';
