@@ -173,22 +173,19 @@ const pickBar=document.createElement('div');pickBar.id='pickBar';pickBar.hidden=
 const hint=document.createElement('span'),cancelPick=document.createElement('button');cancelPick.textContent='取消';
 pickBar.append(hint,placeSearch,placeChoices,cancelPick);document.querySelector('.stage').append(pickBar);
 const sideNames={start:'起点',end:'终点',via:'途经点'};
-function drawPathMarkers(){
+function drawPathMarkers(routeStops=[]){
  routeLayer.querySelectorAll('[data-path-marker]').forEach(marker=>marker.remove());
- const stops=[
-  ['start',endpoints.start,sideNames.start,'#14685c'],
-  ...waypoints.map((cell,index)=>['via',cell,'途经 '+(index+1),'#584687']),
-  ['end',endpoints.end,sideNames.end,'#943c36']
- ];
- for(const [side,cell,title,color] of stops){
-  if(typeof cell!=='number')continue;
-  const [x,y]=walkXY(cell);
-  const marker=svgElement('g',{'data-path-marker':side,transform:'translate('+x+' '+y+')'});
-  const label=svgElement('text',{x:8,y:side==='start'?-6:14,fill:color,stroke:'white','stroke-width':3,'paint-order':'stroke','font-size':12,'font-weight':700});
-  label.textContent=title;
-  marker.append(svgElement('circle',{r:4.5,fill:color,stroke:'white','stroke-width':2}),label);
+ const stops=[endpoints.start,...waypoints,endpoints.end];
+ stops.forEach((stop,index)=>{
+  const point=routeStops[index] ?? (typeof stop==='number'?walkXY(stop):null);
+  if(!point)return;
+  const first=index===0,last=index===stops.length-1;
+  const marker=svgElement('g',{'data-path-marker':first?'start':last?'end':'via',transform:'translate('+point.join(' ')+')'});
+  const label=svgElement('text',{x:0,y:3,'font-size':9,'text-anchor':'middle',fill:'white'});
+  label.textContent=first?'起':last?'终':String(index);
+  marker.append(svgElement('circle',{r:8,fill:'#12665c',stroke:'white','stroke-width':1.5}),label);
   routeLayer.append(marker);
- }
+ });
 }
 function pickSide(side){
  pendingSide=side;placeSearch.value='';hint.textContent='点选'+sideNames[side];pickBar.hidden=false;drawer(false);
@@ -273,7 +270,7 @@ function showPlanner(){
  const exit=document.createElement('button');exit.textContent='结束规划';exit.onclick=endNavigation;walkPanel.append(swap,exit);
  if(endpoints.start==null||endpoints.end==null)return;
  const note=document.createElement('p');walkPanel.append(note);
- const path=[],line=[];
+ const path=[],line=[],routeStops=[];
  const stops=[endpoints.start,...waypoints,endpoints.end];
  let departure=stops[0];
  for(let i=1;i<stops.length;i++){
@@ -282,6 +279,8 @@ function showPlanner(){
   if(!leg.length){
    note.textContent=endpointName(stops[i-1])+' → '+endpointName(stops[i])+' 未找到连续路线，可改选附近道路。';return;
   }
+  if(i===1)routeStops.push(leg[0]);
+  routeStops.push(leg.at(-1));
   path.push(...leg);line.push(...straightenWalk(leg));
   departure=arrival;
  }
@@ -294,7 +293,7 @@ function showPlanner(){
  walkSummary.textContent='约 '+distance+' 米 · '+Math.max(1,Math.round(metres/(travelMode==='bike'?200:75)))+' 分钟';
  const points=line.map(p=>p.join(',')).join(' ');
  for(const [stroke,width] of [['white',7.5],['#08746a',4.5]])routeLayer.append(svgElement('polyline',{points,stroke,'stroke-width':width,fill:'none','stroke-linejoin':'round','stroke-linecap':'round'}));
- drawPathMarkers();
+ drawPathMarkers(routeStops);
  const xs=path.map(p=>p[0]),ys=path.map(p=>p[1]);const l=Math.min(...xs),r=Math.max(...xs),t=Math.min(...ys),b=Math.max(...ys);
  x=196+.585*(l+r)/2;y=.585*(t+b)/2;z=Math.min(5,Math.max(1,Math.min(1244/(r-l+160),1265/(b-t+180))*.68));render();
  const scale=map.getScreenCTM().a,panel=el('drawer').getBoundingClientRect();
