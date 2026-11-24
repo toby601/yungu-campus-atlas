@@ -2,7 +2,7 @@ const walkWidth=1244, walkHeight=1265, walkCount=walkWidth*walkHeight;
 const road=i=>i>=0&&i<walkCount&&(walkBits.charCodeAt(i>>3)&(1<<(i%8)));
 const walkXY=i=>[(i%walkWidth),Math.floor(i/walkWidth)];
 const gates={'4号门':[126,594],'北校门':[601,148],'6号门':[1114,637],'南校门（1号门）':[602,1140],'2号门':[464,1139],'8号门':[672,1137]};
-const walkLocations={...gates,...atlasCenters};
+const walkLocations=[...atlasCatalog.map(building=>building.code),...Object.keys(gates)];
 const walkPanel=document.createElement('section');walkPanel.id='walkPanel';walkPanel.hidden=true;el('detailsMount').after(walkPanel);
 const routeLayer=document.createElementNS(map.namespaceURI,'g');routeLayer.style.pointerEvents='none';el('campusPlan').append(routeLayer);
 function clearWalk(){if(el('drawer').dataset.detent==='compact')el('drawer').dataset.detent='half';pendingSide=null;pickBar.hidden=true;routeLayer.replaceChildren();walkPanel.hidden=true;el('drawer').classList.remove('routing')}
@@ -157,7 +157,7 @@ let waypointIndex=0;
 let pendingSide=null;
 const placeChoices=document.createElement('datalist');
 placeChoices.id='walkPlaceChoices';
-for(const place of Object.keys(walkLocations)){
+for(const place of walkLocations){
  const option=document.createElement('option');option.value=endpointName(place);placeChoices.append(option);
 }
 const placeSearch=document.createElement('input');
@@ -166,7 +166,7 @@ placeSearch.placeholder='搜索楼号或校门';
 placeSearch.setAttribute('aria-label',placeSearch.placeholder);
 placeSearch.style.cssText='width:9em;max-width:40%;min-height:36px';
 placeSearch.oninput=()=>{
- const place=Object.keys(walkLocations).find(key=>endpointName(key)===placeSearch.value);
+ const place=walkLocations.find(key=>endpointName(key)===placeSearch.value);
  if(place)acceptPlace(place);
 };
 const pickBar=document.createElement('div');pickBar.id='pickBar';pickBar.hidden=true;
