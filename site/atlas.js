@@ -17,28 +17,35 @@ buildingCard.className='buildingCard';buildingCard.hidden=true;buildingCard.setA
 el('detailsMount').append(buildingCard);
 let press;
 const footprintDefs=document.createElementNS(map.namespaceURI,'defs');map.prepend(footprintDefs);
-const footprints=buildingShapes.map(([left,top,right,bottom,d,curve])=>{
+const footprints=buildingShapes.map(([left,top,right,bottom,d,curve,color])=>{
   const path=document.createElementNS(map.namespaceURI,'path');
   path.setAttribute('d',d);footprintDefs.append(path);
-  return {left,top,right,bottom,path,curve};
+  return {left,top,right,bottom,path,curve,color};
 });
 function buildingAt(x,y){
   const point=new DOMPoint(Math.floor(x)+.5,Math.floor(y)+.5);
   return footprints.findIndex(f=>point.x>=f.left&&point.x<f.right&&point.y>=f.top&&point.y<f.bottom&&f.path.isPointInFill(point))+1;
 }
 const groundLabels=document.createElementNS(map.namespaceURI,'image');
-groundLabels.setAttribute('href','assets/building-labels.webp?v=e7-west-edge');
+groundLabels.setAttribute('href','assets/building-labels.webp?v=cf-edges-1');
 groundLabels.setAttribute('width','1244');groundLabels.setAttribute('height','1265');
 groundLabels.setAttribute('class','ground-labels');groundLabels.style.pointerEvents='none';
-const ringSurface=document.createElementNS(map.namespaceURI,'path');
-ringSurface.setAttribute('d',footprints.find(f=>f.curve).curve);
-ringSurface.setAttribute('class','ground-labels');
-ringSurface.setAttribute('fill','#788b90');
-ringSurface.setAttribute('stroke','#788b90');
-ringSurface.setAttribute('stroke-width','3');
-ringSurface.setAttribute('stroke-linejoin','round');
-ringSurface.style.pointerEvents='none';
-el('campusBase').after(ringSurface,groundLabels);
+const surfaces=document.createElementNS(map.namespaceURI,'g');
+surfaces.setAttribute('class','ground-labels');
+surfaces.style.pointerEvents='none';
+for(const {curve,color} of footprints){
+  if(!curve)continue;
+  const surface=document.createElementNS(map.namespaceURI,'path');
+  surface.setAttribute('d',curve);
+  surface.setAttribute('fill',color || '#788b90');
+  surface.setAttribute('stroke',color || '#788b90');
+  surface.setAttribute('stroke-width',color?'1.6':'3');
+  surface.setAttribute('stroke-linejoin','round');
+  surfaces.append(surface);
+}
+const facadeBacking=groundLabels.cloneNode(false);
+facadeBacking.setAttribute('href','assets/facade-edges.webp');
+el('campusBase').after(facadeBacking,surfaces,groundLabels);
 const highlight=document.createElementNS(map.namespaceURI,'g');
 highlight.style.pointerEvents='none';
 function hideBuilding(){window.clearWalk?.();clearUnderground();buildingCard.hidden=true;highlight.remove()}

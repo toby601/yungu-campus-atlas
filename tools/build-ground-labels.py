@@ -27,12 +27,46 @@ for code in ('E0',):
     smooth.putalpha(band)
     layer.alpha_composite(smooth,(scale*x,scale*y))
 
+facade_backing=Image.new('RGBA',layer.size)
 for idx, (code,name,category) in enumerate(data['items'],1):
     ys,xs=np.where(mask==idx)
     if not len(xs):continue
     x,y=xs.min(),ys.min()
     w,h=xs.max()-x+1,ys.max()-y+1
     inside=mask[y:y+h,x:x+w]==idx
+    if code.startswith(('C','F')):
+        # Old raster outlines extend past the picking mask. Continue the
+        # adjacent ground colour beneath the new vector, in a narrow band.
+        pad=5
+        shape=Image.fromarray(np.pad(inside,pad).astype('uint8')*255).resize(
+            ((w+2*pad)*scale,(h+2*pad)*scale),Image.Resampling.NEAREST)
+        region=ground.crop((4*(x-pad),4*(y-pad),4*(x+w+pad),4*(y+h+pad))).resize(shape.size)
+        outer=np.asarray(shape.filter(ImageFilter.MaxFilter(17)))>0
+        inner=np.asarray(shape.filter(ImageFilter.MinFilter(7)))>0
+        rgb=np.asarray(region).astype(float)
+        known=~outer
+        pending=outer & ~inner
+        while pending.any():
+            padded_rgb=np.pad(rgb,((1,1),(1,1),(0,0)),mode='edge')
+            padded_known=np.pad(known,1)
+            count=np.zeros(known.shape)
+            total=np.zeros_like(rgb)
+            for dy,dx in [(0,1),(2,1),(1,0),(1,2)]:
+                sl=np.s_[dy:dy+known.shape[0],dx:dx+known.shape[1]]
+                valid=padded_known[sl]
+                count+=valid
+                total+=padded_rgb[sl]*valid[:,:,None]
+            edge=pending & (count>0)
+            if not edge.any():break
+            rgb[edge]=total[edge]/count[edge,None]
+            pending[edge]=False
+            known[edge]=True
+        repair=Image.fromarray(rgb.astype('uint8')).convert('RGBA')
+        original=np.asarray(region).astype(float)
+        fill=np.median(original[np.asarray(shape)>0],axis=0)
+        remnant=(np.linalg.norm(original-fill,axis=2)<32) | (original.mean(axis=2)<156)
+        repair.putalpha(Image.fromarray(((outer & ~inner & remnant)*255).astype('uint8')))
+        facade_backing.alpha_composite(repair,((x-pad)*scale,(y-pad)*scale))
     # C17 uses 15 map units. Anchor every label inside its own footprint.
     size=15
     font=ImageFont.truetype('C:/Windows/Fonts/msyhbd.ttc',size*scale)
@@ -79,7 +113,7 @@ for idx, (code,name,category) in enumerate(data['items'],1):
         # The old caption spans almost the entire narrow footprint.
         patch=Image.new('RGBA',crop.size,(169,170,206,255))
         patch.putalpha(clip)
-    if code!='E10':  # E10 has a solid vector surface under its label.
+    if code!='E10' and not code.startswith(('C','F')):  # Vector surfaces already cover the old lettering.
         layer.alpha_composite(patch,(x*scale,y*scale))
     if code.startswith('D1') and 'D20' in code:
         # The printed group name crosses several buildings and the paths between them.
@@ -109,3 +143,5 @@ for idx, (code,name,category) in enumerate(data['items'],1):
         anchor_y=y+yy[j]+(n-(len(lines)-1)/2)*size*1.24
         draw.text(((x+xx[j])*scale,anchor_y*scale),line,font=font,anchor='mm',fill='#123d40')
 layer.save(site/'assets/building-labels.webp',lossless=True)
+
+facade_backing.save(site/'assets/facade-edges.webp',lossless=True)

@@ -32,6 +32,34 @@ def academic_ring_curve(points):
             commands.append('C'+xy(c1)+' '+xy(c2)+' '+xy(b))
     return ''.join(commands)+'Z'
 
+def simplify_edge(points):
+    a,b=points[0],points[-1]
+    delta=b-a
+    t=np.clip((points-a)@delta/max(delta@delta,1),0,1)
+    errors=np.linalg.norm(points-a-t[:,None]*delta,axis=1)
+    split=int(errors.argmax())
+    if errors[split]<=1.1:
+        return [a,b]
+    return simplify_edge(points[:split+1])[:-1]+simplify_edge(points[split:])
+
+def facade_path(contour):
+    points=np.asarray(contour,dtype=float)
+    split=int(np.linalg.norm(points-points[0],axis=1).argmax())
+    corners=simplify_edge(points[:split+1])[:-1]+simplify_edge(
+        np.vstack((points[split:],points[0])))[:-1]
+    if len(corners)<3:
+        corners=list(points)
+    def xy(p):return f'{p[0]:.2f},{p[1]:.2f}'
+    commands=[]
+    for i,corner in enumerate(corners):
+        prev=corners[i-1]-corner
+        after=corners[(i+1)%len(corners)]-corner
+        incoming=corner+prev*min(.45,.65/max(np.linalg.norm(prev),.01))
+        outgoing=corner+after*min(.45,.65/max(np.linalg.norm(after),.01))
+        commands.append(('M' if i==0 else 'L')+xy(incoming)+'Q'+xy(corner)+' '+xy(outgoing))
+    return ''.join(commands)+'Z'
+
+ground=np.asarray(Image.open(site/'assets/campus-detail.webp').convert('RGB'))
 shapes = []
 for idx in range(1,len(data['items'])+1):
     inside = np.pad(mask == idx, 1)
@@ -63,4 +91,8 @@ for idx in range(1,len(data['items'])+1):
     shapes.append([int(xs.min()),int(ys.min()),int(xs.max()+1),int(ys.max()+1),''.join(commands)])
     if data['items'][idx-1][0]=='E10':
         shapes[-1].append(academic_ring_curve(max(contours,key=len)))
+    if data['items'][idx-1][0].startswith(('C','F')):
+        surface=''.join(facade_path(c) for c in contours)
+        color=np.median(ground[ys*4+2,xs*4+2],axis=0).astype(int)
+        shapes[-1].extend([surface,'#%02x%02x%02x'%tuple(color)])
 (site/'building-shapes.js').write_text('const buildingShapes='+json.dumps(shapes,separators=(',',':'))+';\n',encoding='utf8')
