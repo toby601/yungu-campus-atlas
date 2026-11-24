@@ -30,8 +30,19 @@ const handle=document.createElement('button');
 handle.className='sheetHandle';handle.setAttribute('aria-label','展开或收起面板');
 sheet.prepend(handle);
 const snap=full=>{sheet.style.height='';sheet.dataset.detent=full?'full':'half';handle.setAttribute('aria-expanded',String(full))};
+function compactRoute(){
+ sheet.style.height='';sheet.dataset.detent='compact';handle.setAttribute('aria-expanded','false');
+}
+function isRouteSheet(){return sheet.classList.contains('routing')&&phoneLayout.matches}
+const closeSheet=el('closeMenu').onclick;
+el('closeMenu').onclick=()=>{
+ if(isRouteSheet()&&sheet.dataset.detent!=='compact'){compactRoute();return}
+ if(isRouteSheet())clearWalk();
+ closeSheet();
+};
+grip.addEventListener('click',e=>{if(!ignoreClick&&!e.target.closest('button')&&sheet.dataset.detent==='compact')snap(false)});
 let sheetDrag,ignoreClick=false;
-handle.onclick=()=>{if(!ignoreClick)snap(sheet.dataset.detent!=='full')};
+handle.onclick=()=>{if(!ignoreClick)snap(sheet.dataset.detent==='half')};
 for(const target of [handle,grip]){
  target.addEventListener('pointerdown',e=>{
   if(!phoneLayout.matches||e.target.closest('#closeMenu'))return;
@@ -47,6 +58,8 @@ for(const target of [handle,grip]){
   const delta=e.clientY-sheetDrag.y;sheetDrag=null;sheet.style.height='';
   if(Math.abs(delta)<10)return;
   ignoreClick=true;setTimeout(()=>ignoreClick=false,0);
+  if(delta>40&&isRouteSheet()){compactRoute();return}
+  if(delta<0&&sheet.dataset.detent==='compact'){snap(false);return}
   if(delta>65&&sheet.dataset.detent!=='full'){drawer(false);return}
   snap(delta<0);
  });

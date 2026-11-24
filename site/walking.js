@@ -5,7 +5,7 @@ const gates={'4号门':[126,594],'北校门':[601,148],'6号门':[1114,637],'南
 const walkLocations={...gates,...atlasCenters};
 const walkPanel=document.createElement('section');walkPanel.id='walkPanel';walkPanel.hidden=true;el('detailsMount').after(walkPanel);
 const routeLayer=document.createElementNS(map.namespaceURI,'g');routeLayer.style.pointerEvents='none';el('campusPlan').append(routeLayer);
-function clearWalk(){pendingSide=null;pickBar.hidden=true;routeLayer.replaceChildren();walkPanel.hidden=true;el('drawer').classList.remove('routing')}
+function clearWalk(){if(el('drawer').dataset.detent==='compact')el('drawer').dataset.detent='half';pendingSide=null;pickBar.hidden=true;routeLayer.replaceChildren();walkPanel.hidden=true;el('drawer').classList.remove('routing')}
 window.clearWalk=clearWalk;
 function nearestRoad(point,accept){
  let best=-1,min=Infinity;
@@ -155,7 +155,8 @@ function endpointName(value){
  const b=atlasCatalog.find(b=>b.code===value);return b?b.code+' '+b.name:value;
 }
 window.pickWalkEndpoint=e=>{
- if(!pendingSide||mode!=='ground')return false;
+ if(mode!=='ground')return false;
+ if(!pendingSide)return !walkPanel.hidden;
  const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(el('campusBase').getScreenCTM().inverse()),px=Math.floor(p.x),py=Math.floor(p.y);
  const other=pendingSide==='start'?'end':'start';
  let value;
@@ -180,7 +181,7 @@ function showPlanner(){
   const b=document.createElement('button');b.className='endpoint';b.textContent=sideNames[key]+'　'+endpointName(endpoints[key])+'　›';b.onclick=()=>pickSide(key);walkPanel.append(b);
  }
  const swap=document.createElement('button');swap.textContent='⇅ 交换起终点';swap.onclick=()=>{[endpoints.start,endpoints.end]=[endpoints.end,endpoints.start];showPlanner()};
- const exit=document.createElement('button');exit.textContent='结束规划';exit.onclick=clearWalk;walkPanel.append(swap,exit);
+ const exit=document.createElement('button');exit.textContent='结束规划';exit.onclick=()=>{clearWalk();drawer(false)};walkPanel.append(swap,exit);
  if(endpoints.start==null||endpoints.end==null)return;
  const path=findWalk(endpoints.start,endpoints.end),note=document.createElement('p');walkPanel.append(note);
  if(!path.length){note.textContent='底图中未找到连续接边的步道，可改选建筑旁的道路。';return}
@@ -195,7 +196,7 @@ function showPlanner(){
 let walkDataReady;
 function loadWalkData(){
  if(!walkDataReady)walkDataReady=Promise.all(['walk-grid.js','walk-edges.js'].map(src=>new Promise((resolve,reject)=>{
- const script=document.createElement('script');script.src=src;script.onload=resolve;script.onerror=()=>reject(Error(src));document.head.append(script);
+ const script=document.createElement('script');script.src=src+'?v=34a16c2';script.onload=resolve;script.onerror=()=>reject(Error(src));document.head.append(script);
  }))).catch(err=>{walkDataReady=null;throw err});
  return walkDataReady;
 }
