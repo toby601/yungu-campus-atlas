@@ -17,20 +17,28 @@ buildingCard.className='buildingCard';buildingCard.hidden=true;buildingCard.setA
 el('detailsMount').append(buildingCard);
 let press;
 const footprintDefs=document.createElementNS(map.namespaceURI,'defs');map.prepend(footprintDefs);
-const footprints=buildingShapes.map(([left,top,right,bottom,d])=>{
+const footprints=buildingShapes.map(([left,top,right,bottom,d,curve])=>{
   const path=document.createElementNS(map.namespaceURI,'path');
   path.setAttribute('d',d);footprintDefs.append(path);
-  return {left,top,right,bottom,path};
+  return {left,top,right,bottom,path,curve};
 });
 function buildingAt(x,y){
   const point=new DOMPoint(Math.floor(x)+.5,Math.floor(y)+.5);
   return footprints.findIndex(f=>point.x>=f.left&&point.x<f.right&&point.y>=f.top&&point.y<f.bottom&&f.path.isPointInFill(point))+1;
 }
 const groundLabels=document.createElementNS(map.namespaceURI,'image');
-groundLabels.setAttribute('href','assets/building-labels.webp?v=curve-edges-1');
+groundLabels.setAttribute('href','assets/building-labels.webp?v=ring-vector-1');
 groundLabels.setAttribute('width','1244');groundLabels.setAttribute('height','1265');
 groundLabels.setAttribute('class','ground-labels');groundLabels.style.pointerEvents='none';
-el('campusBase').after(groundLabels);
+const ringSurface=document.createElementNS(map.namespaceURI,'path');
+ringSurface.setAttribute('d',footprints.find(f=>f.curve).curve);
+ringSurface.setAttribute('class','ground-labels');
+ringSurface.setAttribute('fill','#788b90');
+ringSurface.setAttribute('stroke','#788b90');
+ringSurface.setAttribute('stroke-width','3');
+ringSurface.setAttribute('stroke-linejoin','round');
+ringSurface.style.pointerEvents='none';
+el('campusBase').after(ringSurface,groundLabels);
 const highlight=document.createElementNS(map.namespaceURI,'g');
 highlight.style.pointerEvents='none';
 function hideBuilding(){window.clearWalk?.();clearUnderground();buildingCard.hidden=true;highlight.remove()}
@@ -40,13 +48,15 @@ function markBuilding(id,base,ox,oy,factor){
   const shape=footprints[id-1];
   const clip=document.createElementNS(map.namespaceURI,'clipPath');
   clip.id='outside-building-selection';
+  const displayPath=shape.curve || shape.path.getAttribute('d');
   const outside=shape.path.cloneNode(false);
   const pad=8;
-  outside.setAttribute('d','M'+(shape.left-pad)+' '+(shape.top-pad)+'H'+(shape.right+pad)+'V'+(shape.bottom+pad)+'H'+(shape.left-pad)+'Z '+shape.path.getAttribute('d'));
+  outside.setAttribute('d','M'+(shape.left-pad)+' '+(shape.top-pad)+'H'+(shape.right+pad)+'V'+(shape.bottom+pad)+'H'+(shape.left-pad)+'Z '+displayPath);
   outside.setAttribute('clip-rule','evenodd');
   clip.append(outside);highlight.append(clip);
   for(const [color,width] of [['#fffbea',5],['#00655d',2.8]]){
     const outline=shape.path.cloneNode(false);
+    outline.setAttribute('d',displayPath);
     outline.setAttribute('fill','none');
     outline.setAttribute('stroke',color);
     outline.dataset.maxWidth=width;

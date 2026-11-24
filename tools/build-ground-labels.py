@@ -12,7 +12,7 @@ scale = 3
 layer = Image.new('RGBA', (1244*scale,1265*scale))
 # Smooth small raster steps along the two central curved footprints.
 # Restrict the repair to a narrow boundary band, beneath all lettering.
-for code in ('E0','E10'):
+for code in ('E0',):
     index=next(i for i,item in enumerate(data['items'],1) if item[0]==code)
     ys,xs=np.where(mask==index)
     x,y=int(xs.min())-3,int(ys.min())-3
@@ -66,7 +66,8 @@ for idx, (code,name,category) in enumerate(data['items'],1):
         # The old caption spans almost the entire narrow footprint.
         patch=Image.new('RGBA',crop.size,(169,170,206,255))
         patch.putalpha(clip)
-    layer.alpha_composite(patch,(x*scale,y*scale))
+    if code!='E10':  # E10 has a solid vector surface under its label.
+        layer.alpha_composite(patch,(x*scale,y*scale))
     if code.startswith('D1') and 'D20' in code:
         # The printed group name crosses several buildings and the paths between them.
         # Restore only the ink strokes, sampling the surrounding map colours.
