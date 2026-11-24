@@ -174,8 +174,14 @@ function directions(code,side){
  clearWalk();highlight.remove();el('drawer').classList.add('routing');buildingCard.hidden=true;walkPanel.hidden=false;
  endpoints.start=null;endpoints.end=null;endpoints[side]=code;showPlanner();pickSide(side==='start'?'end':'start');
 }
+// East/west perimeter road centerlines: about 480 screenshot pixels,
+// versus 1016 map units. The screenshot scale bar is 375 m per 175 px.
+const metresPerUnit=(375/175)*480/1016;
+const walkSummary=document.createElement('span');
+walkSummary.className='walkSummary';walkSummary.setAttribute('aria-live','polite');
+el('drawer').querySelector('.brand').insertBefore(walkSummary,el('closeMenu'));
 function showPlanner(){
- walkPanel.replaceChildren();routeLayer.replaceChildren();
+ walkSummary.textContent='';walkPanel.replaceChildren();routeLayer.replaceChildren();
  const title=document.createElement('h2');title.textContent='地上步行';walkPanel.append(title);
  for(const key of ['start','end']){
   const b=document.createElement('button');b.className='endpoint';b.textContent=sideNames[key]+'　'+endpointName(endpoints[key])+'　›';b.onclick=()=>pickSide(key);walkPanel.append(b);
@@ -186,7 +192,13 @@ function showPlanner(){
  const path=findWalk(endpoints.start,endpoints.end),note=document.createElement('p');walkPanel.append(note);
  if(!path.length){note.textContent='底图中未找到连续接边的步道，可改选建筑旁的道路。';return}
  if(path.some(p=>ringSpine.includes(p)))note.textContent='经 E10 学术环首层 · 室内段为示意路线';else note.textContent='按地上底图估算，实际出入口及通行情况以现场为准。';
- const points=straightenWalk(path).map(p=>p.join(',')).join(' ');
+ const line=straightenWalk(path);
+ let length=0;
+ for(let i=1;i<line.length;i++)length+=Math.hypot(line[i][0]-line[i-1][0],line[i][1]-line[i-1][1]);
+ const metres=length*metresPerUnit;
+ const distance=metres<10?Math.round(metres):Math.round(metres/10)*10;
+ walkSummary.textContent='约 '+distance+' 米 · '+Math.max(1,Math.round(metres/75))+' 分钟';
+ const points=line.map(p=>p.join(',')).join(' ');
  for(const [stroke,width] of [['white',6],['#08746a',3.5]])routeLayer.append(svgElement('polyline',{points,stroke,'stroke-width':width,fill:'none','stroke-linejoin':'round','stroke-linecap':'round'}));
  const xs=path.map(p=>p[0]),ys=path.map(p=>p[1]);const l=Math.min(...xs),r=Math.max(...xs),t=Math.min(...ys),b=Math.max(...ys);
  x=196+.585*(l+r)/2;y=.585*(t+b)/2;z=Math.min(5,Math.max(1,Math.min(1244/(r-l+160),1265/(b-t+180))*.68));render();
