@@ -123,3 +123,11 @@ button:focus-visible,summary:focus-visible{outline:3px solid #c18a29;outline-off
 .travelModes{display:flex;gap:3px;background:#e9efea;border-radius:14px;padding:3px;margin-bottom:8px}
 #walkPanel .travelModes button{flex:1;margin:0;border-radius:11px;background:transparent;color:var(--pine)}
 #walkPanel .travelModes button[aria-pressed=true]{background:var(--pine);color:white;font-weight:700}
+
+#pickBar .routePlaceSearch{flex:1;min-width:0;width:11em;min-height:44px;padding:0 10px;border:1px solid #afc6bf;border-radius:10px;background:#fff;color:#172e35;font:inherit}
+#pickBar button{min-width:44px}
+#pickBar input:focus-visible{outline:3px solid #deb257;outline-offset:2px}
+.routeActions{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin:4px 0}
+#walkPanel .routeActions button{margin:0;padding:6px 10px;background:transparent}
+#walkPanel .routeActions button:first-child{background:#dceee9;color:#174e49;font-weight:650}
+#walkPanel .routeActions button:last-child{margin-left:auto;color:#75443a}

@@ -10,6 +10,23 @@ mask = np.asarray(Image.open(io.BytesIO(base64.b64decode(data['img']))))
 ground = Image.open(site/'assets/campus-detail.webp').convert('RGB')
 scale = 3
 layer = Image.new('RGBA', (1244*scale,1265*scale))
+# Smooth small raster steps along the two central curved footprints.
+# Restrict the repair to a narrow boundary band, beneath all lettering.
+for code in ('E0','E10'):
+    index=next(i for i,item in enumerate(data['items'],1) if item[0]==code)
+    ys,xs=np.where(mask==index)
+    x,y=int(xs.min())-3,int(ys.min())-3
+    right,bottom=int(xs.max())+4,int(ys.max())+4
+    size=((right-x)*scale,(bottom-y)*scale)
+    shape=Image.fromarray((mask[y:bottom,x:right]==index).astype('uint8')*255)
+    outer=np.asarray(shape.filter(ImageFilter.MaxFilter(5)))
+    inner=np.asarray(shape.filter(ImageFilter.MinFilter(5)))
+    band=Image.fromarray(outer-inner).resize(size,Image.Resampling.BILINEAR)
+    region=ground.crop((4*x,4*y,4*right,4*bottom)).resize(size,Image.Resampling.LANCZOS)
+    smooth=region.filter(ImageFilter.MedianFilter(7)).convert('RGBA')
+    smooth.putalpha(band)
+    layer.alpha_composite(smooth,(scale*x,scale*y))
+
 for idx, (code,name,category) in enumerate(data['items'],1):
     ys,xs=np.where(mask==idx)
     if not len(xs):continue

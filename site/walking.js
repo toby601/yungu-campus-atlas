@@ -164,7 +164,7 @@ const placeSearch=document.createElement('input');
 placeSearch.setAttribute('list',placeChoices.id);
 placeSearch.placeholder='搜索楼号或校门';
 placeSearch.setAttribute('aria-label',placeSearch.placeholder);
-placeSearch.style.cssText='width:9em;max-width:40%;min-height:36px';
+placeSearch.className='routePlaceSearch';
 placeSearch.oninput=()=>{
  const place=walkLocations.find(key=>endpointName(key)===placeSearch.value);
  if(place)acceptPlace(place);
@@ -265,9 +265,10 @@ function showPlanner(){
   const b=document.createElement('button');b.className='endpoint';b.textContent=sideNames[key]+'　'+endpointName(endpoints[key])+'　›';b.onclick=()=>pickSide(key);walkPanel.append(b);
  }
  const add=document.createElement('button');add.textContent='＋ 添加途经点';
- add.onclick=()=>{waypointIndex=waypoints.length;pickSide('via')};walkPanel.append(add);
+ add.onclick=()=>{waypointIndex=waypoints.length;pickSide('via')};
  const swap=document.createElement('button');swap.textContent='⇅ 交换起终点';swap.onclick=()=>{[endpoints.start,endpoints.end]=[endpoints.end,endpoints.start];waypoints.reverse();showPlanner()};
- const exit=document.createElement('button');exit.textContent='结束规划';exit.onclick=endNavigation;walkPanel.append(swap,exit);
+ const exit=document.createElement('button');exit.textContent='结束规划';exit.onclick=endNavigation;
+ const actions=document.createElement('div');actions.className='routeActions';actions.append(add,swap,exit);walkPanel.append(actions);
  if(endpoints.start==null||endpoints.end==null)return;
  const note=document.createElement('p');walkPanel.append(note);
  const path=[],line=[],routeStops=[];
