@@ -20,7 +20,8 @@ const sheet=el('drawer'),grip=sheet.querySelector('.brand');
 const phoneLayout=matchMedia('(max-width:740px)');
 const searchButton=document.createElement('button');
 searchButton.className='mapSearch';
-searchButton.textContent='搜索地点或楼号';
+searchButton.textContent='云谷图志 · 搜索';
+searchButton.setAttribute('aria-label','云谷图志，搜索地点或楼号');
 searchButton.onclick=()=>{
  hideBuilding();query.value='';listBuildings();
  sheet.dataset.detent='full';drawer(true);query.focus();
