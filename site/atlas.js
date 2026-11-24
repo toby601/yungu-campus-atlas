@@ -178,10 +178,23 @@ function pickUnderground(event){
   const node=document.elementsFromPoint(event.clientX,event.clientY).find(n=>n.dataset?.floor===floor);
   if(!node)return;
   const copy=node.cloneNode(true);copy.removeAttribute('id');delete copy.dataset.floor;delete copy.dataset.underground;
-  const matrix=map.getScreenCTM().inverse().multiply(node.getScreenCTM());
-  copy.setAttribute('transform',matrix.toString());copy.style.cssText='pointer-events:none;stroke:#075d68;stroke-width:4px;vector-effect:non-scaling-stroke;stroke-linejoin:round;fill:'+ (node.style.pointerEvents==='stroke'?'none':floor==='B2'?'#da9132':'#078f89')+';fill-opacity:.48';
-  if(floor==='B2')copy.style.stroke='#885417';
-  map.append(copy);undergroundHighlight=copy;
+  // The picking group can be transparent. Reuse its map-space transforms
+  // without inheriting its opacity or converting through screen coordinates.
+  const transforms=[];
+  for(let parent=node.parentElement;parent&&parent!==map;parent=parent.parentElement){
+    const transform=parent.getAttribute('transform');
+    if(transform)transforms.unshift(transform);
+  }
+  const overlay=document.createElementNS(ns,'g');
+  overlay.setAttribute('transform',transforms.join(' '));
+  overlay.style.pointerEvents='none';
+  const passage=node.style.pointerEvents==='stroke';
+  copy.style.cssText='pointer-events:none;vector-effect:non-scaling-stroke;stroke-linejoin:round';
+  copy.style.stroke=floor==='B2'?'#885417':'#075d68';
+  copy.style.strokeWidth=passage?'2.5px':'1.75px';
+  copy.style.fill=passage?'none':floor==='B2'?'#da9132':'#078f89';
+  copy.style.fillOpacity='.42';
+  overlay.append(copy);map.append(overlay);undergroundHighlight=overlay;
   if(shell.classList.contains('open'))drawer(false);
   const badge=document.createElement('b');
   badge.textContent=floor;
