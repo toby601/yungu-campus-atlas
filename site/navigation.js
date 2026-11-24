@@ -36,8 +36,7 @@ function compactRoute(){
 function isRouteSheet(){return sheet.classList.contains('routing')&&phoneLayout.matches}
 const closeSheet=el('closeMenu').onclick;
 el('closeMenu').onclick=()=>{
- if(isRouteSheet()&&sheet.dataset.detent!=='compact'){compactRoute();return}
- if(isRouteSheet())clearWalk();
+ if(sheet.classList.contains('routing')){endNavigation();return}
  closeSheet();
 };
 grip.addEventListener('click',e=>{if(!ignoreClick&&!e.target.closest('button')&&sheet.dataset.detent==='compact')snap(false)});

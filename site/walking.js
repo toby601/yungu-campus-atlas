@@ -148,8 +148,12 @@ function pickSide(side){
  pendingSide=side;hint.textContent='点选'+sideNames[side]+'：建筑、校门或步道';pickBar.hidden=false;drawer(false);
 }
 function finishPicking(){pendingSide=null;pickBar.hidden=true;drawer(true);showPlanner()}
-cancelPick.onclick=finishPicking;
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&pendingSide)finishPicking()});
+function endNavigation(){
+ clearWalk();endpoints.start=null;endpoints.end=null;walkSummary.textContent='';
+ drawer(false);
+}
+cancelPick.onclick=endNavigation;
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&pendingSide)endNavigation()});
 function endpointName(value){
  if(value==null)return '在地图上选择';
  if(typeof value==='number')return '地图选点';
@@ -198,7 +202,7 @@ function showPlanner(){
   const b=document.createElement('button');b.className='endpoint';b.textContent=sideNames[key]+'　'+endpointName(endpoints[key])+'　›';b.onclick=()=>pickSide(key);walkPanel.append(b);
  }
  const swap=document.createElement('button');swap.textContent='⇅ 交换起终点';swap.onclick=()=>{[endpoints.start,endpoints.end]=[endpoints.end,endpoints.start];showPlanner()};
- const exit=document.createElement('button');exit.textContent='结束规划';exit.onclick=()=>{clearWalk();drawer(false)};walkPanel.append(swap,exit);
+ const exit=document.createElement('button');exit.textContent='结束规划';exit.onclick=endNavigation;walkPanel.append(swap,exit);
  if(endpoints.start==null||endpoints.end==null)return;
  const path=findWalk(endpoints.start,endpoints.end,travelMode!=='bike'),note=document.createElement('p');walkPanel.append(note);
  if(!path.length){note.textContent=travelMode==='bike'?'未找到连续的室外路线，可改选建筑旁的道路。':'底图中未找到连续接边的步道，可改选建筑旁的道路。';return}
