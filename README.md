@@ -1,6 +1,6 @@
 # 云谷校区地图
 
-[打开校园地图](https://toby601.github.io/yungu-campus-atlas/) · [浏览建筑介绍](site/buildings/)
+[打开校园地图](https://toby601.github.io/yungu-campus-atlas/) · [浏览建筑介绍](site/buildings/README.md)
 
 这是一张西湖大学云谷校区的交互地图。你可以查找楼号、对照地上与地下区域，也可以选择建筑、校门或步道上的位置，规划经过多个地点的步行或骑行路线。
 
@@ -14,7 +14,7 @@
 
 ## 贡献建筑介绍
 
-1. 在[建筑介绍目录](site/buildings/)按楼号找到 Markdown 文件，例如 [E12 图书中心](site/buildings/E12.md)。
+1. 在[建筑介绍目录](site/buildings/README.md)按楼号找到 Markdown 文件，例如 [E12 图书中心](site/buildings/E12.md)。
 2. 登录 GitHub，点文件右上方的铅笔进入编辑。如果提示创建仓库副本，按提示操作。
 3. 在「介绍」下修改正文，段落之间留一个空行。保留文件名、楼名标题、分类以及「介绍」「来源」两个小标题。「来源」下可填写一个可公开访问的完整网址，暂无来源可留空。
 4. 保存修改并创建 Pull Request，简述改了什么、依据是什么。维护者合并到 main 后，GitHub Pages 会自动构建并发布。
@@ -32,7 +32,7 @@ python -m http.server 8000 --directory site
 
 | 内容 | 位置 |
 | --- | --- |
-| 建筑介绍原稿 | [site/buildings/](site/buildings/) |
+| 建筑介绍原稿 | [site/buildings/](site/buildings/README.md) |
 | 分层地图与点选 | [site/atlas.js](site/atlas.js) |
 | 路线规划与途经点 | [site/walking.js](site/walking.js) |
 | 底图与地下蒙版 | [site/assets/](site/assets/) |
