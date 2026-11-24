@@ -62,6 +62,19 @@ for idx, (code,name,category) in enumerate(data['items'],1):
     patch=Image.new('RGBA',crop.size,tuple(fill.astype(int))+(0,))
     patch.putalpha(Image.fromarray(ink.astype('uint8')*255).filter(ImageFilter.MaxFilter(3)))
     patch.putalpha(Image.fromarray(np.minimum(np.asarray(patch.getchannel('A')),np.asarray(clip))))
+    if code=='E7':
+        # The baked caption starts against the west wall. Restore its strip
+        # from the clear facade immediately above, including the edge shading.
+        left,top,right,bottom=407,731,464,741
+        strip=ground.crop((4*left,4*729,4*right,4*730)).resize(
+            ((right-left)*scale,(bottom-top)*scale)).convert('RGBA')
+        original=ground.crop((4*left,4*top,4*right,4*bottom)).resize(strip.size)
+        glyphs=Image.fromarray((np.asarray(original).mean(2)<148).astype('uint8')*255)
+        restored=Image.composite(strip,original.convert('RGBA'),glyphs.filter(ImageFilter.MaxFilter(7)))
+        patch.paste(restored,((left-x)*scale,(top-y)*scale))
+        corner=ground.crop((398*4,738*4,403*4,744*4)).resize((5*scale,6*scale))
+        patch.paste(corner.filter(ImageFilter.MedianFilter(5)).convert('RGBA'),
+                    ((398-x)*scale,(738-y)*scale))
     if code=='J2':
         # The old caption spans almost the entire narrow footprint.
         patch=Image.new('RGBA',crop.size,(169,170,206,255))
