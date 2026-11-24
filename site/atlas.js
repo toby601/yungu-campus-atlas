@@ -17,7 +17,7 @@ buildingCard.className='buildingCard';buildingCard.hidden=true;buildingCard.setA
 el('detailsMount').append(buildingCard);
 let press;
 const footprintDefs=document.createElementNS(map.namespaceURI,'defs');map.prepend(footprintDefs);
-const ringNeighbors=new Set(['E1','E2','E5','E7']);
+const ringNeighbors=new Set(['E1','E2','E5','E7','E9']);
 const footprints=buildingShapes.map(([left,top,right,bottom,d,curve,color],index)=>{
   const path=document.createElementNS(map.namespaceURI,'path');
   const code=buildingData.items[index][0];

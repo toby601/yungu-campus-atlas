@@ -149,6 +149,8 @@ for idx in range(1,len(data['items'])+1):
             surface=seam(ring_outer[1],(0,550),(0,583))+'V864L605 865V879H584L583 888H562V879H550Z'
         elif code=='E7':
             surface=seam(ring_outer[1],(1,715),(1,756))+'H488V748H456V759H436V758H400V740H407V724H436V715Z'
+        elif code=='E9':
+            surface=seam(ring_outer[2],(1,600),(1,632))+'H385V631H378V615H384V601H385V600Z'
         color=np.median(ground[ys*4+2,xs*4+2],axis=0).astype(int)
         shapes[-1].extend([surface,'#%02x%02x%02x'%tuple(color)])
 (site/'building-shapes.js').write_text('const buildingShapes='+json.dumps(shapes,separators=(',',':'))+';\n',encoding='utf8')
