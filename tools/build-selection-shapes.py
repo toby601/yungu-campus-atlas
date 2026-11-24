@@ -91,8 +91,13 @@ for idx in range(1,len(data['items'])+1):
     shapes.append([int(xs.min()),int(ys.min()),int(xs.max()+1),int(ys.max()+1),''.join(commands)])
     if data['items'][idx-1][0]=='E10':
         shapes[-1].append(academic_ring_curve(max(contours,key=len)))
-    if data['items'][idx-1][0].startswith(('C','F','G','H')):
+    elif data['items'][idx-1][0].startswith(('C','D','E','F','G','H')):
         surface=''.join(facade_path(c) for c in contours)
+        if data['items'][idx-1][0]=='E0':
+            left,top,right,bottom=shapes[-1][:4]
+            rx,ry=(right-left)/2,(bottom-top)/2
+            cy=top+ry
+            surface=f'M{left},{cy}a{rx},{ry} 0 1,0 {2*rx},0a{rx},{ry} 0 1,0 {-2*rx},0Z'
         color=np.median(ground[ys*4+2,xs*4+2],axis=0).astype(int)
         shapes[-1].extend([surface,'#%02x%02x%02x'%tuple(color)])
 (site/'building-shapes.js').write_text('const buildingShapes='+json.dumps(shapes,separators=(',',':'))+';\n',encoding='utf8')

@@ -10,23 +10,6 @@ mask = np.asarray(Image.open(io.BytesIO(base64.b64decode(data['img']))))
 ground = Image.open(site/'assets/campus-detail.webp').convert('RGB')
 scale = 3
 layer = Image.new('RGBA', (1244*scale,1265*scale))
-# Smooth small raster steps along the two central curved footprints.
-# Restrict the repair to a narrow boundary band, beneath all lettering.
-for code in ('E0',):
-    index=next(i for i,item in enumerate(data['items'],1) if item[0]==code)
-    ys,xs=np.where(mask==index)
-    x,y=int(xs.min())-3,int(ys.min())-3
-    right,bottom=int(xs.max())+4,int(ys.max())+4
-    size=((right-x)*scale,(bottom-y)*scale)
-    shape=Image.fromarray((mask[y:bottom,x:right]==index).astype('uint8')*255)
-    outer=np.asarray(shape.filter(ImageFilter.MaxFilter(5)))
-    inner=np.asarray(shape.filter(ImageFilter.MinFilter(5)))
-    band=Image.fromarray(outer-inner).resize(size,Image.Resampling.BILINEAR)
-    region=ground.crop((4*x,4*y,4*right,4*bottom)).resize(size,Image.Resampling.LANCZOS)
-    smooth=region.filter(ImageFilter.MedianFilter(7)).convert('RGBA')
-    smooth.putalpha(band)
-    layer.alpha_composite(smooth,(scale*x,scale*y))
-
 facade_backing=Image.new('RGBA',layer.size)
 for idx, (code,name,category) in enumerate(data['items'],1):
     ys,xs=np.where(mask==idx)
@@ -34,7 +17,7 @@ for idx, (code,name,category) in enumerate(data['items'],1):
     x,y=xs.min(),ys.min()
     w,h=xs.max()-x+1,ys.max()-y+1
     inside=mask[y:y+h,x:x+w]==idx
-    if code.startswith(('C','F','G','H')):
+    if code!='E10' and code.startswith(('C','D','E','F','G','H')):
         # Old raster outlines extend past the picking mask. Continue the
         # adjacent ground colour beneath the new vector, in a narrow band.
         pad=5
@@ -96,24 +79,11 @@ for idx, (code,name,category) in enumerate(data['items'],1):
     patch=Image.new('RGBA',crop.size,tuple(fill.astype(int))+(0,))
     patch.putalpha(Image.fromarray(ink.astype('uint8')*255).filter(ImageFilter.MaxFilter(3)))
     patch.putalpha(Image.fromarray(np.minimum(np.asarray(patch.getchannel('A')),np.asarray(clip))))
-    if code=='E7':
-        # The baked caption starts against the west wall. Restore its strip
-        # from the clear facade immediately above, including the edge shading.
-        left,top,right,bottom=407,731,464,741
-        strip=ground.crop((4*left,4*729,4*right,4*730)).resize(
-            ((right-left)*scale,(bottom-top)*scale)).convert('RGBA')
-        original=ground.crop((4*left,4*top,4*right,4*bottom)).resize(strip.size)
-        glyphs=Image.fromarray((np.asarray(original).mean(2)<148).astype('uint8')*255)
-        restored=Image.composite(strip,original.convert('RGBA'),glyphs.filter(ImageFilter.MaxFilter(7)))
-        patch.paste(restored,((left-x)*scale,(top-y)*scale))
-        corner=ground.crop((398*4,738*4,403*4,744*4)).resize((5*scale,6*scale))
-        patch.paste(corner.filter(ImageFilter.MedianFilter(5)).convert('RGBA'),
-                    ((398-x)*scale,(738-y)*scale))
     if code=='J2':
         # The old caption spans almost the entire narrow footprint.
         patch=Image.new('RGBA',crop.size,(169,170,206,255))
         patch.putalpha(clip)
-    if code!='E10' and not code.startswith(('C','F','G','H')):  # Vector surfaces already cover the old lettering.
+    if not code.startswith(('C','D','E','F','G','H')):  # Vector surfaces already cover the old lettering.
         layer.alpha_composite(patch,(x*scale,y*scale))
     if code.startswith('D1') and 'D20' in code:
         # The printed group name crosses several buildings and the paths between them.
@@ -137,7 +107,7 @@ for idx, (code,name,category) in enumerate(data['items'],1):
             rgb[edge]=total[edge]/count[edge,None]
             missing[edge]=False
         repair=Image.fromarray(rgb.astype('uint8')).convert('RGBA')
-        layer.alpha_composite(repair.resize((100*scale,11*scale)),(origin[0]*scale,origin[1]*scale))
+        facade_backing.alpha_composite(repair.resize((100*scale,11*scale)),(origin[0]*scale,origin[1]*scale))
     draw=ImageDraw.Draw(layer)
     for n,line in enumerate(lines):
         anchor_y=y+yy[j]+(n-(len(lines)-1)/2)*size*1.24
