@@ -45,6 +45,10 @@ for idx, (code,name,category) in enumerate(data['items'],1):
     patch=Image.new('RGBA',crop.size,tuple(fill.astype(int))+(0,))
     patch.putalpha(Image.fromarray(ink.astype('uint8')*255).filter(ImageFilter.MaxFilter(3)))
     patch.putalpha(Image.fromarray(np.minimum(np.asarray(patch.getchannel('A')),np.asarray(clip))))
+    if code=='J2':
+        # The old caption spans almost the entire narrow footprint.
+        patch=Image.new('RGBA',crop.size,(169,170,206,255))
+        patch.putalpha(clip)
     layer.alpha_composite(patch,(x*scale,y*scale))
     if code.startswith('D1') and 'D20' in code:
         # The printed group name crosses several buildings and the paths between them.
