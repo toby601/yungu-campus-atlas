@@ -173,6 +173,20 @@ const pickBar=document.createElement('div');pickBar.id='pickBar';pickBar.hidden=
 const hint=document.createElement('span'),cancelPick=document.createElement('button');cancelPick.textContent='取消';
 pickBar.append(hint,placeSearch,placeChoices,cancelPick);document.querySelector('.stage').append(pickBar);
 const sideNames={start:'起点',end:'终点',via:'途经点'};
+function drawPathEndpoints(){
+ routeLayer.querySelectorAll('[data-path-endpoint]').forEach(marker=>marker.remove());
+ for(const side of ['start','end']){
+  const cell=endpoints[side];
+  if(typeof cell!=='number')continue;
+  const [x,y]=walkXY(cell);
+  const color=side==='start'?'#14685c':'#943c36';
+  const marker=svgElement('g',{'data-path-endpoint':side,transform:'translate('+x+' '+y+')'});
+  const label=svgElement('text',{x:8,y:side==='start'?-6:14,fill:color,stroke:'white','stroke-width':3,'paint-order':'stroke','font-size':12,'font-weight':700});
+  label.textContent=sideNames[side];
+  marker.append(svgElement('circle',{r:4.5,fill:color,stroke:'white','stroke-width':2}),label);
+  routeLayer.append(marker);
+ }
+}
 function pickSide(side){
  pendingSide=side;placeSearch.value='';hint.textContent='点选'+sideNames[side];pickBar.hidden=false;drawer(false);
 }
@@ -212,7 +226,7 @@ function acceptPlace(value){
  }
  const other=pendingSide==='start'?'end':'start';
  if(value==null||value===endpoints[other]){hint.textContent=value==null?'请点建筑、校门或米白色步道':'起点和终点相同，请重新选择';return true}
- endpoints[pendingSide]=value;if(endpoints[other]==null){pickSide(other);return true}finishPicking();return true;
+ endpoints[pendingSide]=value;drawPathEndpoints();if(endpoints[other]==null){pickSide(other);return true}finishPicking();return true;
 };
 function directions(code,side){
  clearWalk();highlight.remove();el('drawer').classList.add('routing');buildingCard.hidden=true;walkPanel.hidden=false;
@@ -227,7 +241,7 @@ el('drawer').querySelector('.brand').insertBefore(walkSummary,el('closeMenu'));
 let travelMode='walk';
 function routeTitle(){return travelMode==='bike'?'骑行路线':'步行路线'}
 function showPlanner(){
- walkSummary.textContent='';walkPanel.replaceChildren();routeLayer.replaceChildren();
+ walkSummary.textContent='';walkPanel.replaceChildren();routeLayer.replaceChildren();drawPathEndpoints();
  el('drawer').querySelector('h1').textContent=routeTitle();
  const modes=document.createElement('div');modes.className='travelModes';modes.setAttribute('role','group');modes.setAttribute('aria-label','出行方式');
  for(const [key,name] of [['walk','步行'],['bike','骑行']]){
@@ -277,6 +291,7 @@ function showPlanner(){
  walkSummary.textContent='约 '+distance+' 米 · '+Math.max(1,Math.round(metres/(travelMode==='bike'?200:75)))+' 分钟';
  const points=line.map(p=>p.join(',')).join(' ');
  for(const [stroke,width] of [['white',7.5],['#08746a',4.5]])routeLayer.append(svgElement('polyline',{points,stroke,'stroke-width':width,fill:'none','stroke-linejoin':'round','stroke-linecap':'round'}));
+ drawPathEndpoints();
  const xs=path.map(p=>p[0]),ys=path.map(p=>p[1]);const l=Math.min(...xs),r=Math.max(...xs),t=Math.min(...ys),b=Math.max(...ys);
  x=196+.585*(l+r)/2;y=.585*(t+b)/2;z=Math.min(5,Math.max(1,Math.min(1244/(r-l+160),1265/(b-t+180))*.68));render();
  const scale=map.getScreenCTM().a,panel=el('drawer').getBoundingClientRect();
