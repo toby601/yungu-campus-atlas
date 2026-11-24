@@ -25,6 +25,12 @@ function linkRing(a,b){
 }
 for(let n=1;n<ringSpine.length;n++)linkRing(walkCount+n-1,walkCount+n);
 for(const [cell,n] of ringPortals)linkRing(cell,walkCount+n);
+// Bidirectional lower paths, isolated from the bridge decks above.
+const underpasses=new Map();
+for(const [x1,y1,x2,y2] of [[584,366,618,362],[775,385,802,396],[844,461,871,480]]){
+ const a=y1*walkWidth+x1,b=y2*walkWidth+x2;
+ underpasses.set(a,b);underpasses.set(b,a);
+}
 const routeXY=i=>i>=walkCount?ringSpine[i-walkCount]:walkXY(i);
 function contactsFor(value,allowIndoor=true){
  if(!value)return new Map();
@@ -88,6 +94,11 @@ function findWalk(start,end,allowIndoor=true){
   if(allowIndoor)for(const j of ringLinks.get(i)||[]){
    const next=cost+approach(i,routeXY(j));
    if(next<dist[j]){dist[j]=next;prev[j]=i;push(j,next)}
+  }
+  const below=underpasses.get(i);
+  if(below!==undefined){
+   const next=cost+approach(i,walkXY(below));
+   if(next<dist[below]){dist[below]=next;prev[below]=i;push(below,next)}
   }
   if(i>=walkCount)continue;
   for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
@@ -223,7 +234,7 @@ function showPlanner(){
 let walkDataReady;
 function loadWalkData(){
  if(!walkDataReady)walkDataReady=Promise.all(['walk-grid.js','walk-edges.js'].map(src=>new Promise((resolve,reject)=>{
- const script=document.createElement('script');script.src=src+'?v=34a16c2';script.onload=resolve;script.onerror=()=>reject(Error(src));document.head.append(script);
+ const script=document.createElement('script');script.src=src+'?v=bridge-levels';script.onload=resolve;script.onerror=()=>reject(Error(src));document.head.append(script);
  }))).catch(err=>{walkDataReady=null;throw err});
  return walkDataReady;
 }

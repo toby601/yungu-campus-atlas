@@ -39,5 +39,12 @@ while remaining:
  if len(component)>len(largest):largest=component
 bits=bytearray(len(bits))
 for i in largest:bits[i//8]|=1<<(i%8)
+# Separate each lower path from the bridge deck on both approaches.
+# walking.js connects the two outer cells directly underneath each deck.
+for x, y0, y1 in [(585,362,371),(617,356,367),(776,380,390),
+                   (801,391,401),(845,458,464),(870,476,484)]:
+ for y in range(y0,y1+1):
+  i=y*w+x
+  bits[i//8] &= ~(1<<(i%8))
 print("connected cells",len(largest))
 (root/'site/walk-grid.js').write_text("const walkBits=atob('"+base64.b64encode(bits).decode()+"');\n",encoding='utf8')
