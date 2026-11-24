@@ -303,7 +303,7 @@ function showPlanner(){
 let walkDataReady;
 function loadWalkData(){
  if(!walkDataReady)walkDataReady=Promise.all(['walk-grid.js','walk-edges.js'].map(src=>new Promise((resolve,reject)=>{
- const script=document.createElement('script');script.src=src+'?v=bridge-levels';script.onload=resolve;script.onerror=()=>reject(Error(src));document.head.append(script);
+ const script=document.createElement('script');script.src=src+'?v=e67-court-2';script.onload=resolve;script.onerror=()=>reject(Error(src));document.head.append(script);
  }))).catch(err=>{walkDataReady=null;throw err});
  return walkDataReady;
 }

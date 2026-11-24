@@ -98,6 +98,12 @@ for idx in range(1,len(data['items'])+1):
             rx,ry=(right-left)/2,(bottom-top)/2
             cy=top+ry
             surface=f'M{left},{cy}a{rx},{ry} 0 1,0 {2*rx},0a{rx},{ry} 0 1,0 {-2*rx},0Z'
+        # The west wing belongs to E7. Only the two necks flank the open court.
+        # Follow the ring with a continuous curve instead of tracing its pixel steps.
+        if data['items'][idx-1][0]=='E6':
+            surface='M436 759H456V774H488V756H502Q511 766 521 773V811H501V817H488V805H426V792H421V769H436Z'
+        elif data['items'][idx-1][0]=='E7':
+            surface='M437 715H474Q485 739 502 756H488V748H456V759H436V758H400V740H407V724H436Z'
         color=np.median(ground[ys*4+2,xs*4+2],axis=0).astype(int)
         shapes[-1].extend([surface,'#%02x%02x%02x'%tuple(color)])
 (site/'building-shapes.js').write_text('const buildingShapes='+json.dumps(shapes,separators=(',',':'))+';\n',encoding='utf8')
