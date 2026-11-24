@@ -27,7 +27,7 @@ function buildingAt(x,y){
   return footprints.findIndex(f=>point.x>=f.left&&point.x<f.right&&point.y>=f.top&&point.y<f.bottom&&f.path.isPointInFill(point))+1;
 }
 const groundLabels=document.createElementNS(map.namespaceURI,'image');
-groundLabels.setAttribute('href','assets/building-labels.webp?v=h-college-2');
+groundLabels.setAttribute('href','assets/building-labels.webp?v=uniform-15');
 groundLabels.setAttribute('width','1244');groundLabels.setAttribute('height','1265');
 groundLabels.setAttribute('class','ground-labels');groundLabels.style.pointerEvents='none';
 el('campusBase').after(groundLabels);
