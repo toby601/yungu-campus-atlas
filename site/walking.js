@@ -33,7 +33,8 @@ for(const [x1,y1,x2,y2] of [[584,366,618,362],[775,385,802,396],[844,461,871,480
 }
 const routeXY=i=>i>=walkCount?ringSpine[i-walkCount]:walkXY(i);
 function contactsFor(value,allowIndoor=true){
- if(!value)return new Map();
+ if(value instanceof Map)return value;
+ if(value==null)return new Map();
  if(typeof value==='string'&&!gates[value]){
   const stops=new Map();
   for(const [i,x,y] of walkEdges[value]||[]){
@@ -51,7 +52,7 @@ function contactsFor(value,allowIndoor=true){
  const i=typeof value==='number'?value:nearestRoad(gates[value],()=>true);
  return i<0?new Map():new Map([[i,walkXY(i)]]);
 }
-function findWalk(start,end,allowIndoor=true){
+function findWalk(start,end,allowIndoor=true,arrival=null){
  const starts=contactsFor(start,allowIndoor),ends=contactsFor(end,allowIndoor);
  if(!starts.size||!ends.size)return [];
  // Multi-source Dijkstra, including the short approaches to building edges.
@@ -111,6 +112,7 @@ function findWalk(start,end,allowIndoor=true){
   }
  }
  if(goal>=0){
+  if(arrival)arrival.set(goal,ends.get(goal));
   const path=[ends.get(goal)];let i=goal;
   while(prev[i]!==i){path.push(routeXY(i));i=prev[i]}
   path.push(routeXY(i),starts.get(i));return path.reverse();
@@ -150,21 +152,38 @@ function straightenWalk(path){
 }
 function svgElement(tag,attrs){const n=document.createElementNS(map.namespaceURI,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);return n}
 const endpoints={start:null,end:null};
+const waypoints=[];
+let waypointIndex=0;
 let pendingSide=null;
+const placeChoices=document.createElement('datalist');
+placeChoices.id='walkPlaceChoices';
+for(const place of Object.keys(walkLocations)){
+ const option=document.createElement('option');option.value=endpointName(place);placeChoices.append(option);
+}
+const placeSearch=document.createElement('input');
+placeSearch.setAttribute('list',placeChoices.id);
+placeSearch.placeholder='搜索楼号或校门';
+placeSearch.setAttribute('aria-label',placeSearch.placeholder);
+placeSearch.style.cssText='width:9em;max-width:40%;min-height:36px';
+placeSearch.oninput=()=>{
+ const place=Object.keys(walkLocations).find(key=>endpointName(key)===placeSearch.value);
+ if(place)acceptPlace(place);
+};
 const pickBar=document.createElement('div');pickBar.id='pickBar';pickBar.hidden=true;
 const hint=document.createElement('span'),cancelPick=document.createElement('button');cancelPick.textContent='取消';
-pickBar.append(hint,cancelPick);document.querySelector('.stage').append(pickBar);
-const sideNames={start:'起点',end:'终点'};
+pickBar.append(hint,placeSearch,placeChoices,cancelPick);document.querySelector('.stage').append(pickBar);
+const sideNames={start:'起点',end:'终点',via:'途经点'};
 function pickSide(side){
- pendingSide=side;hint.textContent='点选'+sideNames[side]+'：建筑、校门或步道';pickBar.hidden=false;drawer(false);
+ pendingSide=side;placeSearch.value='';hint.textContent='点选'+sideNames[side];pickBar.hidden=false;drawer(false);
 }
 function finishPicking(){pendingSide=null;pickBar.hidden=true;drawer(true);showPlanner()}
 function endNavigation(){
  clearWalk();endpoints.start=null;endpoints.end=null;walkSummary.textContent='';
  drawer(false);
 }
-cancelPick.onclick=endNavigation;
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&pendingSide)endNavigation()});
+function cancelPicking(){if(pendingSide==='via')finishPicking();else endNavigation()}
+cancelPick.onclick=cancelPicking;
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&pendingSide)cancelPicking()});
 function endpointName(value){
  if(value==null)return '在地图上选择';
  if(typeof value==='number')return '地图选点';
@@ -174,7 +193,7 @@ window.pickWalkEndpoint=e=>{
  if(mode!=='ground')return false;
  if(!pendingSide)return !walkPanel.hidden;
  const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(el('campusBase').getScreenCTM().inverse()),px=Math.floor(p.x),py=Math.floor(p.y);
- const other=pendingSide==='start'?'end':'start';
+
  let value;
  if(px>=0&&py>=0&&px<1244&&py<1265){
  const id=buildingAt(px,py);
@@ -183,12 +202,21 @@ window.pickWalkEndpoint=e=>{
  const gate=Object.keys(gates).find(k=>Math.hypot(gates[k][0]-px,gates[k][1]-py)<8);
  const cell=py*walkWidth+px;if(gate)value=gate;else if(road(cell))value=cell;
  }}
+ acceptPlace(value);return true;
+};
+function acceptPlace(value){
+ if(!pendingSide)return;
+ if(pendingSide==='via'){
+  if(value==null){hint.textContent='请点建筑、校门或步道';return}
+  waypoints[waypointIndex]=value;finishPicking();return;
+ }
+ const other=pendingSide==='start'?'end':'start';
  if(value==null||value===endpoints[other]){hint.textContent=value==null?'请点建筑、校门或米白色步道':'起点和终点相同，请重新选择';return true}
  endpoints[pendingSide]=value;if(endpoints[other]==null){pickSide(other);return true}finishPicking();return true;
 };
 function directions(code,side){
  clearWalk();highlight.remove();el('drawer').classList.add('routing');buildingCard.hidden=true;walkPanel.hidden=false;
- endpoints.start=null;endpoints.end=null;endpoints[side]=code;showPlanner();pickSide(side==='start'?'end':'start');
+ waypoints.length=0;endpoints.start=null;endpoints.end=null;endpoints[side]=code;showPlanner();pickSide(side==='start'?'end':'start');
 }
 // East/west perimeter road centerlines: about 480 screenshot pixels,
 // versus 1016 map units. The screenshot scale bar is 375 m per 175 px.
@@ -210,15 +238,38 @@ function showPlanner(){
  }
  walkPanel.append(modes);
  for(const key of ['start','end']){
+  if(key==='end')waypoints.forEach((value,index)=>{
+   const row=document.createElement('div');row.style.display='flex';
+   const change=document.createElement('button');change.className='endpoint';
+   change.textContent='途经 '+(index+1)+'　'+endpointName(value)+'　›';
+   change.onclick=()=>{waypointIndex=index;pickSide('via')};
+   const remove=document.createElement('button');remove.textContent='移除';
+   remove.setAttribute('aria-label','移除途经点 '+(index+1));
+   remove.style.flexShrink='0';remove.onclick=()=>{waypoints.splice(index,1);showPlanner()};
+   row.append(change,remove);walkPanel.append(row);
+  });
   const b=document.createElement('button');b.className='endpoint';b.textContent=sideNames[key]+'　'+endpointName(endpoints[key])+'　›';b.onclick=()=>pickSide(key);walkPanel.append(b);
  }
- const swap=document.createElement('button');swap.textContent='⇅ 交换起终点';swap.onclick=()=>{[endpoints.start,endpoints.end]=[endpoints.end,endpoints.start];showPlanner()};
+ const add=document.createElement('button');add.textContent='＋ 添加途经点';
+ add.onclick=()=>{waypointIndex=waypoints.length;pickSide('via')};walkPanel.append(add);
+ const swap=document.createElement('button');swap.textContent='⇅ 交换起终点';swap.onclick=()=>{[endpoints.start,endpoints.end]=[endpoints.end,endpoints.start];waypoints.reverse();showPlanner()};
  const exit=document.createElement('button');exit.textContent='结束规划';exit.onclick=endNavigation;walkPanel.append(swap,exit);
  if(endpoints.start==null||endpoints.end==null)return;
- const path=findWalk(endpoints.start,endpoints.end,travelMode!=='bike'),note=document.createElement('p');walkPanel.append(note);
- if(!path.length){note.textContent=travelMode==='bike'?'未找到连续的室外路线，可改选建筑旁的道路。':'底图中未找到连续接边的步道，可改选建筑旁的道路。';return}
+ const note=document.createElement('p');walkPanel.append(note);
+ const path=[],line=[];
+ const stops=[endpoints.start,...waypoints,endpoints.end];
+ let departure=stops[0];
+ for(let i=1;i<stops.length;i++){
+  const arrival=new Map();
+  const leg=findWalk(departure,stops[i],travelMode!=='bike',arrival);
+  if(!leg.length){
+   note.textContent=endpointName(stops[i-1])+' → '+endpointName(stops[i])+' 未找到连续路线，可改选附近道路。';return;
+  }
+  path.push(...leg);line.push(...straightenWalk(leg));
+  departure=arrival;
+ }
  if(travelMode==='bike')note.textContent='沿室外道路估算，按 12 公里/小时计算；通行以现场标识为准。';else if(path.some(p=>ringSpine.includes(p)))note.textContent='经 E10 学术环首层 · 室内段为示意路线';else note.textContent='按地上底图估算，实际出入口及通行情况以现场为准。';
- const line=straightenWalk(path);
+
  let length=0;
  for(let i=1;i<line.length;i++)length+=Math.hypot(line[i][0]-line[i-1][0],line[i][1]-line[i-1][1]);
  const metres=length*metresPerUnit;
