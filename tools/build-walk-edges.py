@@ -24,7 +24,19 @@ for i in range(1244*1265):
      ends.setdefault(data['items'][idx-1][0],[]).append([i,xx+.5,yy+.5]);seen.add(idx)
     break
    if not paved[yy,xx]:
-    # One antialias pixel immediately at the footprint edge.
+    # A blue-green building can tint the last pavement pixel. Accept a
+    # single blended pixel only when a footprint begins immediately behind it.
+    ex,ey=xx+dx,yy+dy
+    hit=int(mask[ey,ex])
+    if hit:
+     pavement=rgb[yy-dy,xx-dx]
+     delta=rgb[ey,ex]-pavement
+     observed=rgb[yy,xx]-pavement
+     weight=np.clip(np.dot(observed,delta)/max(1,np.dot(delta,delta)),0,1)
+     if np.max(np.abs(observed-weight*delta))<=12:
+      if hit not in seen:
+       ends.setdefault(data['items'][hit-1][0],[]).append([i,ex+.5,ey+.5]);seen.add(hit)
+      break
     # Painted building outlines are up to three map pixels wide.
     # Look across the outline only when it ends on the same footprint.
     for step in (1,2,3):
