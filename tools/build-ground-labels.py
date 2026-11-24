@@ -17,7 +17,7 @@ for idx, (code,name,category) in enumerate(data['items'],1):
     x,y=xs.min(),ys.min()
     w,h=xs.max()-x+1,ys.max()-y+1
     inside=mask[y:y+h,x:x+w]==idx
-    if code!='E10' and code.startswith(('C','D','E','F','G','H','J')):
+    if code!='E10' and code.startswith(('A','C','D','E','F','G','H','J')):
         # Old raster outlines extend past the picking mask. Continue the
         # adjacent ground colour beneath the new vector, in a narrow band.
         pad=5
@@ -49,14 +49,15 @@ for idx, (code,name,category) in enumerate(data['items'],1):
         fill=np.median(original[np.asarray(shape)>0],axis=0)
         remnant=(np.linalg.norm(original-fill,axis=2)<32) | (original.mean(axis=2)<156)
         band=outer & ~inner
-        if code!='J2':
+        if code not in ('A1','A2','A3','J2'):
             band &= remnant
         repair.putalpha(Image.fromarray((band*255).astype('uint8')))
         facade_backing.alpha_composite(repair,((x-pad)*scale,(y-pad)*scale))
     # C17 uses 15 map units. Anchor every label inside its own footprint.
-    size=15
+    size=8 if code=='J2' else 15
     font=ImageFont.truetype('C:/Windows/Fonts/msyhbd.ttc',size*scale)
     lines=[code,name] if code.startswith(('E','J','A')) else [code]
+    if code=='J2':lines=[code]
     while True:
         boxes=[font.getbbox(line,anchor='mm') for line in lines]
         half_w=int(np.ceil(max(max(-l,r) for l,t,r,b in boxes)/scale))
@@ -82,7 +83,7 @@ for idx, (code,name,category) in enumerate(data['items'],1):
     patch=Image.new('RGBA',crop.size,tuple(fill.astype(int))+(0,))
     patch.putalpha(Image.fromarray(ink.astype('uint8')*255).filter(ImageFilter.MaxFilter(3)))
     patch.putalpha(Image.fromarray(np.minimum(np.asarray(patch.getchannel('A')),np.asarray(clip))))
-    if not code.startswith(('C','D','E','F','G','H','J')):  # Vector surfaces already cover the old lettering.
+    if not code.startswith(('A','C','D','E','F','G','H','J')):  # Vector surfaces already cover the old lettering.
         layer.alpha_composite(patch,(x*scale,y*scale))
     if code.startswith('D1') and 'D20' in code:
         # The printed group name crosses several buildings and the paths between them.
@@ -108,6 +109,11 @@ for idx, (code,name,category) in enumerate(data['items'],1):
         repair=Image.fromarray(rgb.astype('uint8')).convert('RGBA')
         facade_backing.alpha_composite(repair.resize((100*scale,11*scale)),(origin[0]*scale,origin[1]*scale))
     draw=ImageDraw.Draw(layer)
+    if code=='J2':
+        # Centre the visible glyphs between the parallel walls (9 units apart).
+        l,t,r,b=font.getbbox(code)
+        draw.text((1004.5*scale-(l+r)/2,946.6*scale-(t+b)/2),code,font=font,fill='#123d40')
+        continue
     for n,line in enumerate(lines):
         anchor_y=y+yy[j]+(n-(len(lines)-1)/2)*size*1.24
         draw.text(((x+xx[j])*scale,anchor_y*scale),line,font=font,anchor='mm',fill='#123d40')

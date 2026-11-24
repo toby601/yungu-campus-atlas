@@ -21,7 +21,7 @@ const ringNeighbors=new Set(['E1','E2','E5','E7','E9']);
 const footprints=buildingShapes.map(([left,top,right,bottom,d,curve,color],index)=>{
   const path=document.createElementNS(map.namespaceURI,'path');
   const code=buildingData.items[index][0];
-  const shared=ringNeighbors.has(code)||code==='E10'||code==='J1'||code==='J2';
+  const shared=ringNeighbors.has(code)||code==='E10'||/^[AJ]/.test(code);
   path.setAttribute('d',shared?curve:d);footprintDefs.append(path);
   if(shared){
     const box=path.getBBox();left=box.x;top=box.y;right=left+box.width;bottom=top+box.height;
@@ -33,7 +33,7 @@ function buildingAt(x,y){
   return footprints.findIndex(f=>point.x>=f.left&&point.x<f.right&&point.y>=f.top&&point.y<f.bottom&&f.path.isPointInFill(point))+1;
 }
 const groundLabels=document.createElementNS(map.namespaceURI,'image');
-groundLabels.setAttribute('href','assets/building-labels.webp?v=sports-edges-1');
+groundLabels.setAttribute('href','assets/building-labels.webp?v=south-arcs-1');
 groundLabels.setAttribute('width','1244');groundLabels.setAttribute('height','1265');
 groundLabels.setAttribute('class','ground-labels');groundLabels.style.pointerEvents='none';
 const surfaces=document.createElementNS(map.namespaceURI,'g');
@@ -46,13 +46,13 @@ for(const [i,{curve,color}] of footprints.entries()){
   surface.setAttribute('fill',color || '#788b90');
   surface.setAttribute('stroke',color || '#788b90');
   const code=buildingData.items[i][0];
-  const shared=ringNeighbors.has(code)||code==='J1'||code==='J2';
+  const shared=ringNeighbors.has(code)||/^[AJ]/.test(code);
   surface.setAttribute('stroke-width',shared?'0':color?'1.6':'3');
   surface.setAttribute('stroke-linejoin','round');
   if(color)surfaces.append(surface);else surfaces.prepend(surface);
 }
 const facadeBacking=groundLabels.cloneNode(false);
-facadeBacking.setAttribute('href','assets/facade-edges.webp?v=sports-edges-1');
+facadeBacking.setAttribute('href','assets/facade-edges.webp?v=south-arcs-1');
 el('campusBase').after(facadeBacking,surfaces,groundLabels);
 const highlight=document.createElementNS(map.namespaceURI,'g');
 highlight.style.pointerEvents='none';
@@ -76,7 +76,7 @@ function markBuilding(id,base,ox,oy,factor){
     outline.setAttribute('stroke',color);
     outline.dataset.maxWidth=width;
     outline.setAttribute('stroke-linejoin','round');
-    if(!/^[EJ]/.test(buildingData.items[id-1][0]))outline.setAttribute('clip-path','url(#outside-building-selection)');
+    if(!/^[AEJ]/.test(buildingData.items[id-1][0]))outline.setAttribute('clip-path','url(#outside-building-selection)');
     highlight.append(outline);
   }
   const overlayParent=base.tagName==='image'?base.parentNode:base;

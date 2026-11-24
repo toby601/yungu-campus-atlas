@@ -129,9 +129,9 @@ for idx in range(1,len(data['items'])+1):
     shapes.append([int(xs.min()),int(ys.min()),int(xs.max()+1),int(ys.max()+1),''.join(commands)])
     if data['items'][idx-1][0]=='E10':
         shapes[-1].append(academic_ring_curve(max(contours,key=len)))
-    elif data['items'][idx-1][0].startswith(('C','D','E','F','G','H','J')):
+    elif data['items'][idx-1][0].startswith(('A','C','D','E','F','G','H','J')):
         surface=''.join(facade_path(c) for c in contours)
-        if data['items'][idx-1][0]=='E0':
+        if data['items'][idx-1][0] in ('A1','A2','E0'):
             left,top,right,bottom=shapes[-1][:4]
             rx,ry=(right-left)/2,(bottom-top)/2
             cy=top+ry
@@ -151,6 +151,9 @@ for idx in range(1,len(data['items'])+1):
             surface=seam(ring_outer[1],(1,715),(1,756))+'H488V748H456V759H436V758H400V740H407V724H436V715Z'
         elif code=='E9':
             surface=seam(ring_outer[2],(1,600),(1,632))+'H385V631H378V615H384V601H385V600Z'
+        elif code=='A3':
+            # The rounded east wall meets a short projecting southeast corner.
+            surface='M716 1061.5H793C803 1067 808 1077 807.5 1088Q807.5 1095 804 1101.5L806 1104V1113.5H716Z'
         elif code=='J1':
             # Keep the entrance recesses and remove one-cell bumps on the straight walls.
             surface='M970.5 646.5H1004.5V657H1021V646.5H1078.5V723.5H1033.5V716.5H1008V723.5H986V716.5H966.5V697.5H970.5Z'
