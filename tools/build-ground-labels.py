@@ -17,7 +17,7 @@ for idx, (code,name,category) in enumerate(data['items'],1):
     x,y=xs.min(),ys.min()
     w,h=xs.max()-x+1,ys.max()-y+1
     inside=mask[y:y+h,x:x+w]==idx
-    if code!='E10' and code.startswith(('C','D','E','F','G','H')):
+    if code!='E10' and code.startswith(('C','D','E','F','G','H','J')):
         # Old raster outlines extend past the picking mask. Continue the
         # adjacent ground colour beneath the new vector, in a narrow band.
         pad=5
@@ -48,7 +48,10 @@ for idx, (code,name,category) in enumerate(data['items'],1):
         original=np.asarray(region).astype(float)
         fill=np.median(original[np.asarray(shape)>0],axis=0)
         remnant=(np.linalg.norm(original-fill,axis=2)<32) | (original.mean(axis=2)<156)
-        repair.putalpha(Image.fromarray(((outer & ~inner & remnant)*255).astype('uint8')))
+        band=outer & ~inner
+        if code!='J2':
+            band &= remnant
+        repair.putalpha(Image.fromarray((band*255).astype('uint8')))
         facade_backing.alpha_composite(repair,((x-pad)*scale,(y-pad)*scale))
     # C17 uses 15 map units. Anchor every label inside its own footprint.
     size=15
@@ -79,11 +82,7 @@ for idx, (code,name,category) in enumerate(data['items'],1):
     patch=Image.new('RGBA',crop.size,tuple(fill.astype(int))+(0,))
     patch.putalpha(Image.fromarray(ink.astype('uint8')*255).filter(ImageFilter.MaxFilter(3)))
     patch.putalpha(Image.fromarray(np.minimum(np.asarray(patch.getchannel('A')),np.asarray(clip))))
-    if code=='J2':
-        # The old caption spans almost the entire narrow footprint.
-        patch=Image.new('RGBA',crop.size,(169,170,206,255))
-        patch.putalpha(clip)
-    if not code.startswith(('C','D','E','F','G','H')):  # Vector surfaces already cover the old lettering.
+    if not code.startswith(('C','D','E','F','G','H','J')):  # Vector surfaces already cover the old lettering.
         layer.alpha_composite(patch,(x*scale,y*scale))
     if code.startswith('D1') and 'D20' in code:
         # The printed group name crosses several buildings and the paths between them.
