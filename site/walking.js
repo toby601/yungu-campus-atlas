@@ -26,7 +26,7 @@ function linkRing(a,b){
 for(let n=1;n<ringSpine.length;n++)linkRing(walkCount+n-1,walkCount+n);
 for(const [cell,n] of ringPortals)linkRing(cell,walkCount+n);
 const routeXY=i=>i>=walkCount?ringSpine[i-walkCount]:walkXY(i);
-function contactsFor(value){
+function contactsFor(value,allowIndoor=true){
  if(!value)return new Map();
  if(typeof value==='string'&&!gates[value]){
   const stops=new Map();
@@ -34,6 +34,7 @@ function contactsFor(value){
    const [u,v]=walkXY(i),prior=stops.get(i);
    if(!prior||Math.hypot(x-u,y-v)<Math.hypot(prior[0]-u,prior[1]-v))stops.set(i,[x,y]);
   }
+  if(!allowIndoor)return stops;
   if(value==='E10')ringSpine.forEach((p,n)=>stops.set(walkCount+n,p));
   if(ringBranches[value]){
    const [n,x,y]=ringBranches[value];
@@ -44,8 +45,8 @@ function contactsFor(value){
  const i=typeof value==='number'?value:nearestRoad(gates[value],()=>true);
  return i<0?new Map():new Map([[i,walkXY(i)]]);
 }
-function findWalk(start,end){
- const starts=contactsFor(start),ends=contactsFor(end);
+function findWalk(start,end,allowIndoor=true){
+ const starts=contactsFor(start,allowIndoor),ends=contactsFor(end,allowIndoor);
  if(!starts.size||!ends.size)return [];
  // Multi-source Dijkstra, including the short approaches to building edges.
  const prev=new Int32Array(walkCount+ringSpine.length).fill(-1);
@@ -84,7 +85,7 @@ function findWalk(start,end){
    const total=cost+approach(i,ends.get(i));
    if(total<best){best=total;goal=i}
   }
-  for(const j of ringLinks.get(i)||[]){
+  if(allowIndoor)for(const j of ringLinks.get(i)||[]){
    const next=cost+approach(i,routeXY(j));
    if(next<dist[j]){dist[j]=next;prev[j]=i;push(j,next)}
   }
@@ -180,24 +181,34 @@ const metresPerUnit=(375/175)*480/1016;
 const walkSummary=document.createElement('span');
 walkSummary.className='walkSummary';walkSummary.setAttribute('aria-live','polite');
 el('drawer').querySelector('.brand').insertBefore(walkSummary,el('closeMenu'));
+let travelMode='walk';
+function routeTitle(){return travelMode==='bike'?'骑行路线':'步行路线'}
 function showPlanner(){
  walkSummary.textContent='';walkPanel.replaceChildren();routeLayer.replaceChildren();
- const title=document.createElement('h2');title.textContent='地上步行';walkPanel.append(title);
+ el('drawer').querySelector('h1').textContent=routeTitle();
+ const modes=document.createElement('div');modes.className='travelModes';modes.setAttribute('role','group');modes.setAttribute('aria-label','出行方式');
+ for(const [key,name] of [['walk','步行'],['bike','骑行']]){
+  const button=document.createElement('button');button.textContent=name;button.dataset.travel=key;
+  button.setAttribute('aria-pressed',String(travelMode===key));
+  button.onclick=()=>{if(travelMode===key)return;travelMode=key;showPlanner();walkPanel.querySelector('[data-travel='+key+']').focus({preventScroll:true})};
+  modes.append(button);
+ }
+ walkPanel.append(modes);
  for(const key of ['start','end']){
   const b=document.createElement('button');b.className='endpoint';b.textContent=sideNames[key]+'　'+endpointName(endpoints[key])+'　›';b.onclick=()=>pickSide(key);walkPanel.append(b);
  }
  const swap=document.createElement('button');swap.textContent='⇅ 交换起终点';swap.onclick=()=>{[endpoints.start,endpoints.end]=[endpoints.end,endpoints.start];showPlanner()};
  const exit=document.createElement('button');exit.textContent='结束规划';exit.onclick=()=>{clearWalk();drawer(false)};walkPanel.append(swap,exit);
  if(endpoints.start==null||endpoints.end==null)return;
- const path=findWalk(endpoints.start,endpoints.end),note=document.createElement('p');walkPanel.append(note);
- if(!path.length){note.textContent='底图中未找到连续接边的步道，可改选建筑旁的道路。';return}
- if(path.some(p=>ringSpine.includes(p)))note.textContent='经 E10 学术环首层 · 室内段为示意路线';else note.textContent='按地上底图估算，实际出入口及通行情况以现场为准。';
+ const path=findWalk(endpoints.start,endpoints.end,travelMode!=='bike'),note=document.createElement('p');walkPanel.append(note);
+ if(!path.length){note.textContent=travelMode==='bike'?'未找到连续的室外路线，可改选建筑旁的道路。':'底图中未找到连续接边的步道，可改选建筑旁的道路。';return}
+ if(travelMode==='bike')note.textContent='沿室外道路估算，按 12 公里/小时计算；通行以现场标识为准。';else if(path.some(p=>ringSpine.includes(p)))note.textContent='经 E10 学术环首层 · 室内段为示意路线';else note.textContent='按地上底图估算，实际出入口及通行情况以现场为准。';
  const line=straightenWalk(path);
  let length=0;
  for(let i=1;i<line.length;i++)length+=Math.hypot(line[i][0]-line[i-1][0],line[i][1]-line[i-1][1]);
  const metres=length*metresPerUnit;
  const distance=metres<10?Math.round(metres):Math.round(metres/10)*10;
- walkSummary.textContent='约 '+distance+' 米 · '+Math.max(1,Math.round(metres/75))+' 分钟';
+ walkSummary.textContent='约 '+distance+' 米 · '+Math.max(1,Math.round(metres/(travelMode==='bike'?200:75)))+' 分钟';
  const points=line.map(p=>p.join(',')).join(' ');
  for(const [stroke,width] of [['white',6],['#08746a',3.5]])routeLayer.append(svgElement('polyline',{points,stroke,'stroke-width':width,fill:'none','stroke-linejoin':'round','stroke-linecap':'round'}));
  const xs=path.map(p=>p[0]),ys=path.map(p=>p[1]);const l=Math.min(...xs),r=Math.max(...xs),t=Math.min(...ys),b=Math.max(...ys);
