@@ -17,9 +17,15 @@ buildingCard.className='buildingCard';buildingCard.hidden=true;buildingCard.setA
 el('detailsMount').append(buildingCard);
 let press;
 const footprintDefs=document.createElementNS(map.namespaceURI,'defs');map.prepend(footprintDefs);
-const footprints=buildingShapes.map(([left,top,right,bottom,d,curve,color])=>{
+const ringNeighbors=new Set(['E1','E2','E5','E7']);
+const footprints=buildingShapes.map(([left,top,right,bottom,d,curve,color],index)=>{
   const path=document.createElementNS(map.namespaceURI,'path');
-  path.setAttribute('d',d);footprintDefs.append(path);
+  const code=buildingData.items[index][0];
+  const shared=ringNeighbors.has(code)||code==='E10';
+  path.setAttribute('d',shared?curve:d);footprintDefs.append(path);
+  if(shared){
+    const box=path.getBBox();left=box.x;top=box.y;right=left+box.width;bottom=top+box.height;
+  }
   return {left,top,right,bottom,path,curve,color};
 });
 function buildingAt(x,y){
@@ -33,15 +39,16 @@ groundLabels.setAttribute('class','ground-labels');groundLabels.style.pointerEve
 const surfaces=document.createElementNS(map.namespaceURI,'g');
 surfaces.setAttribute('class','ground-labels');
 surfaces.style.pointerEvents='none';
-for(const {curve,color} of footprints){
+for(const [i,{curve,color}] of footprints.entries()){
   if(!curve)continue;
   const surface=document.createElementNS(map.namespaceURI,'path');
   surface.setAttribute('d',curve);
   surface.setAttribute('fill',color || '#788b90');
   surface.setAttribute('stroke',color || '#788b90');
-  surface.setAttribute('stroke-width',color?'1.6':'3');
+  const shared=ringNeighbors.has(buildingData.items[i][0]);
+  surface.setAttribute('stroke-width',shared?'0':color?'1.6':'3');
   surface.setAttribute('stroke-linejoin','round');
-  surfaces.append(surface);
+  if(color)surfaces.append(surface);else surfaces.prepend(surface);
 }
 const facadeBacking=groundLabels.cloneNode(false);
 facadeBacking.setAttribute('href','assets/facade-edges.webp?v=e67-court-2');

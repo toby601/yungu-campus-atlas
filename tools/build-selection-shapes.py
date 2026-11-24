@@ -8,6 +8,41 @@ from PIL import Image
 site = Path(__file__).resolve().parents[1] / 'site'
 data, _ = json.JSONDecoder().raw_decode((site/'atlas.js').read_text('utf8').split('const buildingData=',1)[1])
 mask = np.asarray(Image.open(io.BytesIO(base64.b64decode(data['img']))))
+# Clockwise outer facade, from the east tip around to the northwest tip.
+# Shared edges are exact subcurves; splitting a cubic does not change its shape.
+ring_outer=np.array([
+    [(752,647),(755,728),(691,799),(608,799)],
+    [(608,799),(524,799),(461,731),(461,650)],
+    [(461,650),(461,612),(477,578),(502,553)]
+],dtype=float)
+
+def xy(p):return f'{p[0]:.4f},{p[1]:.4f}'
+
+def cubic(seg):return 'C'+' '.join(xy(p) for p in seg[1:])
+
+def split_cubic(segment,t):
+    a,b,c,d=segment
+    ab,bc,cd=(1-t)*segment[:-1]+t*segment[1:]
+    u,v=(1-t)*np.array([ab,bc])+t*np.array([bc,cd])
+    mid=(1-t)*u+t*v
+    return np.array([a,ab,u,mid]),np.array([mid,v,cd,d])
+
+def seam(segment,first,last):
+    def parameter(axis,value):
+        lo,hi=0.,1.
+        increasing=segment[-1,axis]>segment[0,axis]
+        for _ in range(40):
+            t=(lo+hi)/2
+            if (split_cubic(segment,t)[0][-1,axis]<value)==increasing:lo=t
+            else:hi=t
+        return (lo+hi)/2
+    a,b=parameter(*first),parameter(*last)
+    lo,hi=sorted((a,b))
+    prefix=split_cubic(segment,hi)[0]
+    part=split_cubic(prefix,lo/hi)[1]
+    if a>b:part=part[::-1]
+    return 'M'+xy(part[0])+cubic(part)
+
 def academic_ring_curve(points):
     """Smooth each edge separately so both flat ends retain their corners."""
     pts=np.asarray(points,dtype=float)
@@ -18,6 +53,9 @@ def academic_ring_curve(points):
     commands=['M'+xy(pts[corners[0]])]
     for start,end in zip(corners,corners[1:]+[corners[0]+len(pts)]):
         edge=closed[start:end+1]
+        if np.linalg.norm(edge[0]-ring_outer[0,0])<2 and np.linalg.norm(edge[-1]-ring_outer[-1,-1])<2:
+            commands.extend(cubic(seg) for seg in ring_outer)
+            continue
         if len(edge)<55:
             commands.append('L'+xy(edge[-1]))
             continue
@@ -102,8 +140,15 @@ for idx in range(1,len(data['items'])+1):
         # Follow the ring with a continuous curve instead of tracing its pixel steps.
         if data['items'][idx-1][0]=='E6':
             surface='M436 759H456V774H488V756H502Q511 766 521 773V811H501V817H488V805H426V792H421V769H436Z'
-        elif data['items'][idx-1][0]=='E7':
-            surface='M437 715H474Q485 739 502 756H488V748H456V759H436V758H400V740H407V724H436Z'
+        code=data['items'][idx-1][0]
+        if code=='E1':
+            surface=seam(ring_outer[0],(1,724),(1,694))+'H803V707H810V724H802V731H788V724Z'
+        elif code=='E2':
+            surface=seam(ring_outer[0],(0,680),(1,746))+'H787L788 731H801V745L810 746V764H804V778H761L760 786H745L744 778H712V786H680Z'
+        elif code=='E5':
+            surface=seam(ring_outer[1],(0,550),(0,583))+'V864L605 865V879H584L583 888H562V879H550Z'
+        elif code=='E7':
+            surface=seam(ring_outer[1],(1,715),(1,756))+'H488V748H456V759H436V758H400V740H407V724H436V715Z'
         color=np.median(ground[ys*4+2,xs*4+2],axis=0).astype(int)
         shapes[-1].extend([surface,'#%02x%02x%02x'%tuple(color)])
 (site/'building-shapes.js').write_text('const buildingShapes='+json.dumps(shapes,separators=(',',':'))+';\n',encoding='utf8')
