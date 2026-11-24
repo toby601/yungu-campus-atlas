@@ -81,3 +81,30 @@ button:focus-visible,summary:focus-visible{outline:3px solid #c18a29;outline-off
 #drawer:not(.routing):has(.buildingCard:not([hidden])) .backDirectory{display:block;align-self:flex-start;min-height:40px;color:var(--pine)}
 #drawer:has(.buildingCard:not([hidden])) #atlasQuery,#drawer:has(.buildingCard:not([hidden])) #allBuildings{display:none}
 @media(max-width:740px){#drawer:has(.buildingCard:not([hidden])) .repoLink{display:none}}
+
+.mapSearch,.sheetHandle{display:none}
+@media(max-width:740px){
+ main{--dock-gap:max(12px,env(safe-area-inset-bottom));--dock-fill:#fffffff5;--action:#0967bf}
+ .stage .hud{inset:auto 12px calc(var(--dock-gap) + 4px);display:flex;padding:8px;gap:8px;border-radius:24px;background:var(--dock-fill);box-shadow:0 4px 22px #19373135}
+ .hud .toggle,.hud #place{display:none}
+ .hud .mapSearch{display:flex;align-items:center;gap:10px;flex:1;min-height:46px;background:#eff1f2;border-radius:16px;color:#405057;padding:0 14px;font:500 16px system-ui}
+ .mapSearch::before{content:'';width:17px;height:17px;background:center/contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23405057' stroke-width='2.5'%3E%3Ccircle cx='10' cy='10' r='6.5'/%3E%3Cpath d='m15 15 6 6'/%3E%3C/svg%3E")}
+ .hud .startWalk{order:0;background:var(--action);color:#fff;border-radius:16px}
+ .stage .floors,main.open .stage .floors{inset:max(12px,env(safe-area-inset-top)) auto auto 12px}
+ .stage #layersettings{top:max(12px,env(safe-area-inset-top))}
+ .stage .zoom{bottom:calc(var(--dock-gap) + 94px)}
+ main #drawer,main #drawer.routing{inset:auto 0 0;height:46dvh;max-height:82dvh;background:var(--dock-fill);border-radius:26px 26px 0 0;padding:0 18px max(14px,env(safe-area-inset-bottom));gap:6px}
+ main #drawer[data-detent=full]{height:80dvh}
+ #drawer::before{display:none}
+ #drawer .sheetHandle{display:grid;place-items:center;min-height:24px;width:100%;touch-action:none}
+ .sheetHandle::after{content:'';width:38px;height:5px;border-radius:5px;background:#a7afb1}
+ #drawer .brand{background:transparent;color:#172e35;padding:0 0 3px}
+ #drawer .brand h1{font:750 24px/1.25 system-ui}
+ #drawer #closeMenu{background:#edf0f1;color:#4d5b61;border-radius:50%}
+ #drawer .goHere{background:var(--action);border-radius:15px}
+ #drawer .goHere+.goHere{color:#185c97;background:#e8f0f7}
+ #atlasQuery{border:0;background:#edf0f1}
+ main:has(#pickBar:not([hidden])) .hud{visibility:hidden}
+ #pickBar{bottom:calc(var(--dock-gap) + 12px)}
+}
+@media(max-width:740px){main{--dock-gap:max(52px,env(safe-area-inset-bottom))}#drawer:has(.buildingCard:not([hidden])) .backDirectory{min-height:36px}.stage .zoom{right:12px}}

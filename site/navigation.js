@@ -16,10 +16,45 @@ function listBuildings(){
 }
 query.oninput=listBuildings;query.onkeydown=e=>{if(e.key==='Enter'&&query.value.trim())listing.querySelector('button')?.click()};
 el('place').onclick=()=>drawer(true);listBuildings();
-const grip=el('drawer').querySelector('.brand');let dragStart;
-grip.addEventListener('pointerdown',e=>{if(innerWidth>740||e.target.closest('button'))return;dragStart=[e.clientY,el('drawer').offsetHeight];grip.setPointerCapture(e.pointerId)});
-grip.addEventListener('pointermove',e=>{if(dragStart)el('drawer').style.height=Math.max(innerHeight*.30,Math.min(innerHeight*.74,dragStart[1]+dragStart[0]-e.clientY))+'px'});
-grip.addEventListener('pointerup',()=>dragStart=null);grip.addEventListener('pointercancel',()=>dragStart=null);
+const sheet=el('drawer'),grip=sheet.querySelector('.brand');
+const phoneLayout=matchMedia('(max-width:740px)');
+const searchButton=document.createElement('button');
+searchButton.className='mapSearch';
+searchButton.textContent='搜索地点或楼号';
+searchButton.onclick=()=>{
+ hideBuilding();query.value='';listBuildings();
+ sheet.dataset.detent='full';drawer(true);query.focus();
+};
+document.querySelector('.hud').prepend(searchButton);
+const handle=document.createElement('button');
+handle.className='sheetHandle';handle.setAttribute('aria-label','展开或收起面板');
+sheet.prepend(handle);
+const snap=full=>{sheet.style.height='';sheet.dataset.detent=full?'full':'half';handle.setAttribute('aria-expanded',String(full))};
+let sheetDrag,ignoreClick=false;
+handle.onclick=()=>{if(!ignoreClick)snap(sheet.dataset.detent!=='full')};
+for(const target of [handle,grip]){
+ target.addEventListener('pointerdown',e=>{
+  if(!phoneLayout.matches||e.target.closest('#closeMenu'))return;
+  sheetDrag={y:e.clientY,h:sheet.offsetHeight};target.setPointerCapture(e.pointerId);
+ });
+ target.addEventListener('pointermove',e=>{
+  if(!sheetDrag)return;
+  const h=sheetDrag.h+sheetDrag.y-e.clientY;
+  sheet.style.height=Math.max(90,Math.min(innerHeight*.82,h))+'px';
+ });
+ target.addEventListener('pointerup',e=>{
+  if(!sheetDrag)return;
+  const delta=e.clientY-sheetDrag.y;sheetDrag=null;sheet.style.height='';
+  if(Math.abs(delta)<10)return;
+  ignoreClick=true;setTimeout(()=>ignoreClick=false,0);
+  if(delta>65&&sheet.dataset.detent!=='full'){drawer(false);return}
+  snap(delta<0);
+ });
+ target.addEventListener('pointercancel',()=>{sheetDrag=null;sheet.style.height=''});
+}
+phoneLayout.addEventListener('change',()=>snap(false));
+query.addEventListener('focus',()=>{if(phoneLayout.matches)snap(true)});
+new MutationObserver(()=>{if(!buildingCard.hidden)snap(false)}).observe(buildingCard,{attributes:true,attributeFilter:['hidden']});
 const drawerTitle=grip.querySelector('h1');
 new MutationObserver(()=>{drawerTitle.textContent=el('drawer').classList.contains('routing')?'步行路线':'建筑导航'}).observe(el('drawer'),{attributes:true,attributeFilter:['class']});
 const backToDirectory=document.createElement('button');

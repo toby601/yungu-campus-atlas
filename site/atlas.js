@@ -8,7 +8,7 @@ for(const b of document.querySelectorAll('[data-mode]'))b.onclick=()=>{mode=b.da
 const atlasRender=render;render=function(){atlasRender();if(el('campusNames'))el('campusNames').style.display=mode==='b1'?'inline':'none';const key=el('area').value;for(const button of document.querySelectorAll('.row'))button.setAttribute('aria-current',button.dataset.key===key);el('place').textContent='建筑导航';for(const b of document.querySelectorAll('[data-mode]')){const k=b.dataset.mode;b.textContent={ground:'G',b1:'B1',b2:'B2'}[k];b.title=b.getAttribute('aria-label')||({ground:'地上',b1:'地下层',b2:'地下二层'}[k]);b.setAttribute('aria-label',b.title)}};
 el('fade').oninput=el('pale').oninput=render;
 const shell=document.querySelector('main'),menu=document.querySelector('.toggle'),media=matchMedia('(max-width:740px)');
-function drawer(open){shell.classList.toggle('open',open);el('drawer').inert=!open;menu.setAttribute('aria-expanded',open);if(open)el('closeMenu').focus();else menu.focus()}
+function drawer(open){if(!open){el('drawer').dataset.detent='half';el('drawer').style.height=''}shell.classList.toggle('open',open);el('drawer').inert=!open;menu.setAttribute('aria-expanded',open);if(open)el('closeMenu').focus();else (media.matches?document.querySelector('.mapSearch')||menu:menu).focus({preventScroll:true})}
 media.addEventListener('change',()=>drawer(false));el('drawer').inert=true;menu.setAttribute('aria-expanded','false');menu.setAttribute('aria-controls','drawer');menu.onclick=()=>drawer(true);el('closeMenu').onclick=document.querySelector('.scrim').onclick=()=>drawer(false);for(const b of document.querySelectorAll('.row'))b.onclick=()=>{el('area').value=b.dataset.key;el('area').onchange();drawer(false)};
 el('sourceDialog').querySelector('button').onclick=()=>el('sourceDialog').close();document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!el('sourceDialog').open){drawer(false);el('layersettings').open=false}});
 mode='ground';new ResizeObserver(()=>render()).observe(map);
@@ -76,7 +76,7 @@ function showBuilding(event){
   const [ox,oy]=buildingData.regions[area]||[0,0],factor=area==='campus'?1:2;
   const px=Math.floor((ox+local.x)/factor),py=Math.floor((oy+local.y)/factor);
   const id=buildingAt(px,py);
-  if(!id){hideBuilding();return}
+  if(!id){const wasSelected=!buildingCard.hidden;hideBuilding();if(wasSelected)drawer(false);return}
   window.clearWalk?.();markBuilding(id,el(ids[area]),ox,oy,factor);const [code,name,category]=buildingData.items[id-1];
   buildingCard.replaceChildren();for(const [tag,value] of [['b',code],['strong',name],['small',category]]){const t=document.createElement(tag);t.textContent=value;buildingCard.append(t)}
   window.addDirections?.(code);
