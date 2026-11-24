@@ -214,7 +214,7 @@ function showPlanner(){
  const distance=metres<10?Math.round(metres):Math.round(metres/10)*10;
  walkSummary.textContent='约 '+distance+' 米 · '+Math.max(1,Math.round(metres/(travelMode==='bike'?200:75)))+' 分钟';
  const points=line.map(p=>p.join(',')).join(' ');
- for(const [stroke,width] of [['white',6],['#08746a',3.5]])routeLayer.append(svgElement('polyline',{points,stroke,'stroke-width':width,fill:'none','stroke-linejoin':'round','stroke-linecap':'round'}));
+ for(const [stroke,width] of [['white',7.5],['#08746a',4.5]])routeLayer.append(svgElement('polyline',{points,stroke,'stroke-width':width,fill:'none','stroke-linejoin':'round','stroke-linecap':'round'}));
  const xs=path.map(p=>p[0]),ys=path.map(p=>p[1]);const l=Math.min(...xs),r=Math.max(...xs),t=Math.min(...ys),b=Math.max(...ys);
  x=196+.585*(l+r)/2;y=.585*(t+b)/2;z=Math.min(5,Math.max(1,Math.min(1244/(r-l+160),1265/(b-t+180))*.68));render();
  const scale=map.getScreenCTM().a,panel=el('drawer').getBoundingClientRect();
